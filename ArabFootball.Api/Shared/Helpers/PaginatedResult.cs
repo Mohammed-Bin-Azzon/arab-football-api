@@ -1,4 +1,4 @@
-﻿namespace api_training.Shared.Helpers
+﻿namespace ArabFootball.Shared.Helpers
 {
     public class PaginatedResult<T>
     {
