@@ -1,4 +1,4 @@
-﻿namespace ArabFootball.Api.Features.Fans.Dto
+﻿namespace ArabFootball.Api.Features.Fans.Dtos
 {
     public class FanProfileDto
     {

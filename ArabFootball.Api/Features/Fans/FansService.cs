@@ -1,5 +1,4 @@
-﻿using ArabFootball.Api.Features.Fans.Dto;
-using ArabFootball.Api.Features.Fans.FansDto;
+﻿using ArabFootball.Api.Features.Fans.Dtos;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Api.Shared.Helpers;
@@ -59,7 +58,6 @@ namespace ArabFootball.Api.Features.Fans
                 fan.DisplayName = dto.DisplayName;
 
             fan.Bio = dto.Bio;
-            fan.IsPrivate = dto.IsPrivate;
 
             _context.Fans.Update(fan);
             return await _context.SaveChangesAsync() > 0;
@@ -86,6 +84,57 @@ namespace ArabFootball.Api.Features.Fans
                 FollowingCount = f.FollowingCount,
                 Points = f.Points
             }).ToList();
+        }
+
+        public async Task<bool> FollowFanAsync(int observerId, int targetId)
+        {
+            
+            if (observerId == targetId) return false;
+
+            var existingFollow = await _context.Follows.FindAsync(observerId, targetId);
+            if (existingFollow != null) return false; 
+
+            
+            var follow = new Follow
+            {
+                ObserverId = observerId,
+                TargetId = targetId
+            };
+
+            _context.Follows.Add(follow);
+
+
+            var observer = await _context.Fans.FindAsync(observerId);
+            var target = await _context.Fans.FindAsync(targetId);
+
+            if (observer != null) observer.FollowingCount++; 
+            if (target != null) target.FollowersCount++;     
+
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> UnfollowFanAsync(int observerId, int targetId)
+        {
+            
+            var follow = await _context.Follows.FindAsync(observerId, targetId);
+            if (follow == null) return false; 
+
+            
+            _context.Follows.Remove(follow);
+
+            
+            var observer = await _context.Fans.FindAsync(observerId);
+            var target = await _context.Fans.FindAsync(targetId);
+
+            if (observer != null) observer.FollowingCount--;
+            if (target != null) target.FollowersCount--;
+
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> IsFollowingAsync(int observerId, int targetId)
+        {
+            return await _context.Follows.AnyAsync(f => f.ObserverId == observerId && f.TargetId == targetId);
         }
     }
 }

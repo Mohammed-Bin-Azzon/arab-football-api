@@ -12,7 +12,7 @@ namespace ArabFootball.Api.Shared.Entity
 
         public string? ProfilePicUrl { get; set; }
 
-        public bool IsPrivate { get; set; } = false;
+        /*public bool IsPrivate { get; set; } = false;*/
 
         public int FollowersCount { get; set; } = 0;
         public int FollowingCount { get; set; } = 0;
