@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ArabFootball.Api.Features.Fans.FansDto;
+using ArabFootball.Api.Features.Fans.Dtos;
 
 namespace ArabFootball.Api.Features.Fans
 {
@@ -48,6 +48,40 @@ namespace ArabFootball.Api.Features.Fans
         {
             var results = await _fansService.SearchFansAsync(query);
             return Ok(results);
+        }
+
+
+        // POST: api/fans/{targetId}/follow?observerId=1
+        [HttpPost("{targetId}/follow")]
+        public async Task<IActionResult> Follow(int targetId, [FromQuery] int observerId)
+        {
+
+            var result = await _fansService.FollowFanAsync(observerId, targetId);
+
+            if (!result)
+                return BadRequest("لا يمكن إتمام المتابعة (تأكد من المعرفات أو أنك تتابعه بالفعل)");
+
+            return Ok(new { message = "تمت المتابعة بنجاح" });
+        }
+
+
+        [HttpDelete("{targetId}/unfollow")]
+        public async Task<IActionResult> Unfollow(int targetId, [FromQuery] int observerId)
+        {
+            var result = await _fansService.UnfollowFanAsync(observerId, targetId);
+
+            if (!result)
+                return BadRequest("أنت لا تتابع هذا المستخدم");
+
+            return Ok(new { message = "تم إلغاء المتابعة" });
+        }
+
+
+        [HttpGet("{targetId}/is-following")]
+        public async Task<IActionResult> CheckIsFollowing(int targetId, [FromQuery] int observerId)
+        {
+            var isFollowing = await _fansService.IsFollowingAsync(observerId, targetId);
+            return Ok(new { isFollowing });
         }
     }
 }
