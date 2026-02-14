@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace ArabFootball.Api.Features.Users.UsersDto
+namespace ArabFootball.Api.Features.Auth.AuthDto
 {
-    public class UserResponseDto
+    public class AuthResponseDto
     {
         public string Username { get; set; }
         public string Email { get; set; }

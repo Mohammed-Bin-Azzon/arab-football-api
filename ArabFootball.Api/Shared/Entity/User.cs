@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ArabFootball.Api.Shared.Entity
 {
-    public abstract class User
+    public  class User
     {
         
         public int Id { get; set; }
