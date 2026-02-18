@@ -2,5 +2,6 @@
 {
     public class Admin
     {
+        public string AdminName { get; set; }
     }
 }
