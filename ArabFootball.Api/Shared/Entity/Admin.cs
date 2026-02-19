@@ -1,6 +1,6 @@
 ﻿namespace ArabFootball.Api.Shared.Entity
 {
-    public class Admin
+    public class Admin: User
     {
         public string AdminName { get; set; }
     }
