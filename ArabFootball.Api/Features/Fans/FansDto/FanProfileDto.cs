@@ -1,4 +1,6 @@
-﻿namespace ArabFootball.Api.Features.Fans.Dtos
+﻿using ArabFootball.Api.Features.Posts.Dtos;
+
+namespace ArabFootball.Api.Features.Fans.Dtos
 {
     public class FanProfileDto
     {
@@ -10,5 +12,6 @@
         public int FollowersCount { get; set; }
         public int FollowingCount { get; set; }
         public double Points { get; set; }
+        public List<PostDto> Posts { get; set; } = new List<PostDto>();
     }
 }
