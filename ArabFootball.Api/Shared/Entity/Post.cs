@@ -32,5 +32,7 @@ namespace ArabFootball.Api.Shared.Entity
         public int FanId { get; set; }
         public Fan Fan { get; set; }
 
+        public ICollection<Like> PostLikes { get; set; } = new List<Like>();
+
     }
 }
