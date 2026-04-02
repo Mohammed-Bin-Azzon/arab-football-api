@@ -24,7 +24,7 @@ namespace ArabFootball.Api.Shared.Entity
         public MediaType MediaType { get; set; } 
         public int LikeCount { get; set; } = 0;
         public int CommentCount { get; set; } = 0;
-        //public int BookmarkCount { get; set; } = 0;
+        public int BookmarkCount { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -34,6 +34,7 @@ namespace ArabFootball.Api.Shared.Entity
 
         public ICollection<Like> PostLikes { get; set; } = new List<Like>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
 
     }
 }
