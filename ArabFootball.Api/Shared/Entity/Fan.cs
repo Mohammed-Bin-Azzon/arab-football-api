@@ -25,8 +25,6 @@ namespace ArabFootball.Api.Shared.Entity
         public ICollection<Like> PostLikes { get; set; } = new List<Like>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
         public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
-
-
-        // public ICollection<Prediction> Predictions { get; set; }
+        public ICollection<Prediction> Predictions { get; set; } = new List<Prediction>();
     }
 }
