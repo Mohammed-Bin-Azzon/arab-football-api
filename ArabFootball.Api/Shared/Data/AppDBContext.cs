@@ -14,6 +14,8 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Like> Likes { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Bookmark> Bookmarks { get; set; }
+        public DbSet<Prediction> Predictions { get; set; }
+
 
 
 
