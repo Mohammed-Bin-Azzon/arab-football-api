@@ -11,6 +11,14 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Fan> Fans { get; set; }
         public DbSet<Follow> Follows { get; set; }
         public DbSet<Match> Matches { get; set; }
+        public DbSet<Post> Posts { get; set; }
+        public DbSet<Like> Likes { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<Bookmark> Bookmarks { get; set; }
+        public DbSet<Prediction> Predictions { get; set; }
+
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

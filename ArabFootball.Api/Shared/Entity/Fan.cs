@@ -12,7 +12,6 @@ namespace ArabFootball.Api.Shared.Entity
 
         public string? ProfilePicUrl { get; set; }
 
-        /*public bool IsPrivate { get; set; } = false;*/
 
         public int FollowersCount { get; set; } = 0;
         public int FollowingCount { get; set; } = 0;
@@ -22,7 +21,10 @@ namespace ArabFootball.Api.Shared.Entity
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 
-        // public ICollection<Post> Posts { get; set; }
-        // public ICollection<Prediction> Predictions { get; set; }
+        public ICollection<Post> Posts { get; set; } = new List<Post>();
+        public ICollection<Like> PostLikes { get; set; } = new List<Like>();
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
+        public ICollection<Prediction> Predictions { get; set; } = new List<Prediction>();
     }
 }

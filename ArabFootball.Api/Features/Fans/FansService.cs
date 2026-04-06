@@ -1,4 +1,5 @@
 ﻿using ArabFootball.Api.Features.Fans.Dtos;
+using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Api.Shared.Helpers;
@@ -17,10 +18,14 @@ namespace ArabFootball.Api.Features.Fans
             _fileService = fileService;
         }
 
-        
+
         public async Task<FanProfileDto?> GetProfileAsync(int fanId)
         {
-            var fan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == fanId);
+            
+            var fan = await _context.Fans
+                .Include(f => f.Posts)
+                .FirstOrDefaultAsync(f => f.Id == fanId);
+
             if (fan == null) return null;
 
             return new FanProfileDto
@@ -32,7 +37,18 @@ namespace ArabFootball.Api.Features.Fans
                 ProfilePicUrl = fan.ProfilePicUrl,
                 FollowersCount = fan.FollowersCount,
                 FollowingCount = fan.FollowingCount,
-                Points = fan.Points
+                Points = fan.Points,
+
+                Posts = fan.Posts.OrderByDescending(p => p.CreatedAt).Select(p => new PostDto
+                {
+                    Id = p.Id,
+                    Caption = p.Caption,
+                    MediaUrl = p.MediaUrl,
+                    MediaType = p.MediaType.ToString(),
+                    CreatedAt = p.CreatedAt,
+                    LikeCount = p.LikeCount,
+                    CommentCount = p.CommentCount,
+                }).ToList()
             };
         }
 
