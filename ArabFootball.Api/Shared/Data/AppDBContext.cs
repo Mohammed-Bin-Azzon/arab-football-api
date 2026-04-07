@@ -9,6 +9,7 @@ namespace ArabFootball.Api.Shared.Data
     {
         public DbSet<User> Users { get; set; }
         public DbSet<Fan> Fans { get; set; }
+        public DbSet<Admin> Admins { get; set; }
         public DbSet<Follow> Follows { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<Post> Posts { get; set; }
@@ -22,6 +23,14 @@ namespace ArabFootball.Api.Shared.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            modelBuilder.Entity<User>().ToTable("Users");
+            modelBuilder.Entity<Admin>().ToTable("Admins");
+            modelBuilder.Entity<Fan>().ToTable("Fans");
+
+
+
+
             base.OnModelCreating(modelBuilder);
 
             
