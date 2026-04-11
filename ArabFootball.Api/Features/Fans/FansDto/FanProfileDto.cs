@@ -4,14 +4,14 @@ namespace ArabFootball.Api.Features.Fans.Dtos
 {
     public class FanProfileDto
     {
-        public int Id { get; set; } 
-        public string Username { get; set; } 
-        public string DisplayName { get; set; }
+        public int Id { get; set; }
+        public string Username { get; set; } = null!;
+        public string DisplayName { get; set; } = null!;
         public string? Bio { get; set; }
         public string? ProfilePicUrl { get; set; }
         public int FollowersCount { get; set; }
         public int FollowingCount { get; set; }
-        public double Points { get; set; }
-        public List<PostDto> Posts { get; set; } = new List<PostDto>();
+        public int Points { get; set; }
+        public List<PostDto> Posts { get; set; } = new();
     }
 }

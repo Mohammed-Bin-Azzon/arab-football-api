@@ -14,12 +14,17 @@ namespace ArabFootball.Api.Features.Likes
             _context = context;
         }
 
-        public async Task<LikeResultDto?> ToggleLikeAsync(int postId, int fanId)
+        public async Task<LikeResultDto> ToggleLikeAsync(int postId, int fanId)
         {
+            var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
+            if (!fanExists)
+                throw new InvalidOperationException("المستخدم غير موجود.");
 
-            var post = await _context.Posts.FindAsync(postId);
-            if (post == null) return null; 
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+                throw new KeyNotFoundException("المنشور غير موجود.");
 
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             var existingLike = await _context.Likes
                 .FirstOrDefaultAsync(l => l.PostId == postId && l.FanId == fanId);
@@ -28,33 +33,43 @@ namespace ArabFootball.Api.Features.Likes
 
             if (existingLike != null)
             {
-
                 _context.Likes.Remove(existingLike);
-                post.LikeCount--; 
                 isLiked = false;
             }
             else
             {
-
                 var newLike = new Like
                 {
                     PostId = postId,
                     FanId = fanId,
                     CreatedAt = DateTime.UtcNow
                 };
+
                 await _context.Likes.AddAsync(newLike);
-                post.LikeCount++; 
                 isLiked = true;
             }
 
-
-            await _context.SaveChangesAsync();
-
-            return new LikeResultDto
+            try
             {
-                IsLiked = isLiked,
-                NewLikeCount = post.LikeCount
-            };
+                await _context.SaveChangesAsync();
+
+                var actualLikeCount = await _context.Likes.CountAsync(l => l.PostId == postId);
+                post.LikeCount = actualLikeCount;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return new LikeResultDto
+                {
+                    IsLiked = isLiked,
+                    NewLikeCount = actualLikeCount
+                };
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync();
+                throw new InvalidOperationException("تعذر تنفيذ العملية بسبب تعارض في البيانات. أعد المحاولة.");
+            }
         }
     }
 }

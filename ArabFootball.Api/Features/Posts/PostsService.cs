@@ -11,38 +11,89 @@ namespace ArabFootball.Api.Features.Posts.Services
         private readonly AppDBContext _context;
         private readonly IFileService _fileService;
 
+        private static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+        private static readonly string[] AllowedVideoExtensions = [".mp4", ".mov"];
+        private static readonly HashSet<string> AllowedExtensions =
+            AllowedImageExtensions.Concat(AllowedVideoExtensions).ToHashSet();
+
         public PostsService(AppDBContext context, IFileService fileService)
         {
             _context = context;
             _fileService = fileService;
         }
 
-        public async Task<bool> CreatePostAsync(int fanId, CreatePostDto dto)
+        public async Task<PostDto> CreatePostAsync(int fanId, CreatePostDto dto)
         {
-            string fileName = await _fileService.SaveFileAsync(dto.MediaFile, "posts");
+            var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
+            if (!fanExists)
+                throw new InvalidOperationException("المستخدم غير موجود.");
 
-            var extension = Path.GetExtension(dto.MediaFile.FileName).ToLower();
-            var mediaType = (extension == ".mp4" || extension == ".mov") ? MediaType.Video : MediaType.Image;
+            if (dto.MediaFile == null || dto.MediaFile.Length == 0)
+                throw new InvalidOperationException("ملف الميديا مطلوب.");
 
-            var post = new Post
+            var extension = Path.GetExtension(dto.MediaFile.FileName).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(extension))
+                throw new InvalidOperationException("نوع الملف غير مدعوم.");
+
+            var mediaType = AllowedVideoExtensions.Contains(extension)
+                ? MediaType.Video
+                : MediaType.Image;
+
+            string? mediaPath = null;
+
+            try
             {
-                Caption = dto.Caption,
-                MediaUrl = $"/uploads/posts/{fileName}",
-                MediaType = mediaType,
-                FanId = fanId,
-                CreatedAt = DateTime.UtcNow
-            };
+                mediaPath = await _fileService.SaveFileAsync(dto.MediaFile, "posts");
 
-            await _context.Posts.AddAsync(post);
-            return await _context.SaveChangesAsync() > 0;
+                var post = new Post
+                {
+                    Caption = string.IsNullOrWhiteSpace(dto.Caption) ? null : dto.Caption.Trim(),
+                    MediaUrl = mediaPath,
+                    MediaType = mediaType,
+                    FanId = fanId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.Posts.AddAsync(post);
+                await _context.SaveChangesAsync();
+
+                var fan = await _context.Fans
+                    .AsNoTracking()
+                    .Where(f => f.Id == fanId)
+                    .Select(f => new { f.DisplayName, f.ProfilePicUrl })
+                    .FirstAsync();
+
+                return new PostDto
+                {
+                    Id = post.Id,
+                    Caption = post.Caption,
+                    MediaUrl = post.MediaUrl,
+                    MediaType = post.MediaType.ToString(),
+                    LikeCount = post.LikeCount,
+                    CommentCount = post.CommentCount,
+                    BookmarkCount = post.BookmarkCount,
+                    CreatedAt = post.CreatedAt,
+                    FanId = post.FanId,
+                    FanDisplayName = fan.DisplayName,
+                    FanProfilePicUrl = fan.ProfilePicUrl
+                };
+            }
+            catch
+            {
+                if (!string.IsNullOrWhiteSpace(mediaPath))
+                {
+                    _fileService.DeleteFile(mediaPath);
+                }
+
+                throw;
+            }
         }
 
-
-        public async Task<List<PostDto>> GetHomeFeedAsync(int fanId)
+        public async Task<List<PostDto>> GetHomeFeedAsync()
         {
             return await _context.Posts
-                .Include(p => p.Fan) 
-                .OrderByDescending(p => p.CreatedAt) 
+                .AsNoTracking()
+                .OrderByDescending(p => p.CreatedAt)
                 .Select(p => new PostDto
                 {
                     Id = p.Id,
@@ -52,6 +103,7 @@ namespace ArabFootball.Api.Features.Posts.Services
                     CreatedAt = p.CreatedAt,
                     LikeCount = p.LikeCount,
                     CommentCount = p.CommentCount,
+                    BookmarkCount = p.BookmarkCount,
                     FanId = p.FanId,
                     FanDisplayName = p.Fan.DisplayName,
                     FanProfilePicUrl = p.Fan.ProfilePicUrl
@@ -61,15 +113,20 @@ namespace ArabFootball.Api.Features.Posts.Services
 
         public async Task<bool> DeletePostAsync(int postId, int fanId)
         {
-            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId && p.FanId == fanId);
-            if (post == null) return false;
+            var post = await _context.Posts
+                .FirstOrDefaultAsync(p => p.Id == postId && p.FanId == fanId);
 
-            
-            var fileName = Path.GetFileName(post.MediaUrl);
-            _fileService.DeleteFile(fileName, "posts");
+            if (post == null)
+                return false;
+
+            var mediaPath = post.MediaUrl;
 
             _context.Posts.Remove(post);
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync();
+
+            _fileService.DeleteFile(mediaPath);
+
+            return true;
         }
     }
 }

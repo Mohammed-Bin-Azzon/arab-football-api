@@ -4,7 +4,7 @@ namespace ArabFootball.Api.Features.Predictions
 {
     public interface IPredictionsService
     {
-        Task<PredictionDto> SubmitPredictionAsync(SubmitPredictionDto dto);
-        Task<List<PredictionDto>> GetFanPredictionsAsync(int fanId);
+        Task<PredictionDto> SubmitPredictionAsync(int fanId, SubmitPredictionDto dto);
+        Task<List<PredictionDto>> GetMyPredictionsAsync(int fanId);
     }
 }

@@ -1,53 +1,86 @@
-﻿using ArabFootball.Api.Shared.Entity;
-using ArabFootball.Shared.Helpers;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using ArabFootball.Api.Shared.Data;
-using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
+using System.Security.Claims;
+using System.Text;
 using ArabFootball.Api.Features.Auth.AuthDto;
+using ArabFootball.Api.Features.Enums;
+using ArabFootball.Api.Shared.Data;
+using ArabFootball.Api.Shared.Entity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
-
-
-namespace ArabFootball.Api.Features.Users
+namespace ArabFootball.Api.Features.Auth
 {
     public class AuthService : IAuthService
     {
-        public AppDBContext _context;
-        public AuthService(AppDBContext context) 
-        { 
+        private readonly AppDBContext _context;
+        private readonly IConfiguration _configuration;
+
+        public AuthService(AppDBContext context, IConfiguration configuration)
+        {
             _context = context;
+            _configuration = configuration;
         }
 
-        public async Task<ApiResponse<AuthResponseDto>> LoginAsync(string username, string password)
+        public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x=> x.Username == username);
+            var username = dto.Username.Trim();
+            var email = dto.Email.Trim().ToLowerInvariant();
 
-            if (user == null)
-                return ApiResponse<AuthResponseDto>.Error(HttpStatusCode.Unauthorized, "Invalid email or password");
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+                throw new InvalidOperationException("اسم المستخدم مستخدم بالفعل.");
 
-            var isPasswordValid = VerifyPassword(password, user.PasswordHash);
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+                throw new InvalidOperationException("البريد الإلكتروني مستخدم بالفعل.");
 
-            if (!isPasswordValid)
-                return ApiResponse<AuthResponseDto>.Error(HttpStatusCode.Unauthorized, "Invalid email or password");
-                
-
-            var userDto = new AuthResponseDto
+            var fan = new Fan
             {
+                Username = username,
+                Email = email,
+                PasswordHash = HashPassword(dto.Password),
+                Role = UserRole.Fan,
+                DisplayName = username,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Fans.AddAsync(fan);
+            await _context.SaveChangesAsync();
+
+            var token = GenerateJwtToken(fan);
+
+            return new AuthResponseDto
+            {
+                UserId = fan.Id,
+                Username = fan.Username,
+                Email = fan.Email,
+                Role = fan.Role.ToString(),
+                Token = token
+            };
+        }
+
+        public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
+        {
+            var email = dto.Email.Trim().ToLowerInvariant();
+
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Email == email);
+
+            if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
+                throw new InvalidOperationException("بيانات الدخول غير صحيحة.");
+
+            var token = GenerateJwtToken(user);
+
+            return new AuthResponseDto
+            {
+                UserId = user.Id,
                 Username = user.Username,
                 Email = user.Email,
+                Role = user.Role.ToString(),
+                Token = token
             };
-              
-            return ApiResponse<AuthResponseDto>.Success(userDto, "You are login successfully");
         }
-
-        public async Task<ApiResponse<AuthResponseDto>> LogoutAsync(int id)
-        {
-           
-
-            var userDto = new AuthResponseDto();
-            return ApiResponse<AuthResponseDto>.Success(userDto, "OK");
-        }
-
 
         public string HashPassword(string password)
         {
@@ -59,29 +92,41 @@ namespace ArabFootball.Api.Features.Users
             return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
 
-
-
-        public async Task<ApiResponse<string>> RegisterAsync(RegisterDto registerDto)
+        private string GenerateJwtToken(User user)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == registerDto.Username))
-                return ApiResponse<string>.Error(HttpStatusCode.BadRequest, "Username is already taken");
+            var key = _configuration["Jwt:Key"]
+                ?? throw new InvalidOperationException("JWT key is missing.");
 
-            if (await _context.Users.AnyAsync(u => u.Email == registerDto.Email))
-                return ApiResponse<string>.Error(HttpStatusCode.BadRequest, "Email is already taken");
+            var issuer = _configuration["Jwt:Issuer"]
+                ?? throw new InvalidOperationException("JWT issuer is missing.");
 
+            var audience = _configuration["Jwt:Audience"]
+                ?? throw new InvalidOperationException("JWT audience is missing.");
 
-            var user = new User
+            var expiresInMinutesString = _configuration["Jwt:ExpiresInMinutes"];
+            if (!int.TryParse(expiresInMinutesString, out var expiresInMinutes))
+                expiresInMinutes = 60;
+
+            var claims = new List<Claim>
             {
-                Username = registerDto.Username,
-                Email = registerDto.Email,
-                PasswordHash = HashPassword(registerDto.Password)
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
-            await _context.Users.AddAsync(user);
+            var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
-            await _context.SaveChangesAsync();   
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
+                signingCredentials: credentials
+            );
 
-            return ApiResponse<string>.Success("Registered successfully");
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

@@ -18,139 +18,191 @@ namespace ArabFootball.Api.Features.Fans
             _fileService = fileService;
         }
 
-
         public async Task<FanProfileDto?> GetProfileAsync(int fanId)
         {
-            
-            var fan = await _context.Fans
-                .Include(f => f.Posts)
-                .FirstOrDefaultAsync(f => f.Id == fanId);
-
-            if (fan == null) return null;
-
-            return new FanProfileDto
-            {
-                Id = fan.Id,
-                Username = fan.Username,
-                DisplayName = fan.DisplayName,
-                Bio = fan.Bio,
-                ProfilePicUrl = fan.ProfilePicUrl,
-                FollowersCount = fan.FollowersCount,
-                FollowingCount = fan.FollowingCount,
-                Points = fan.Points,
-
-                Posts = fan.Posts.OrderByDescending(p => p.CreatedAt).Select(p => new PostDto
+            return await _context.Fans
+                .AsNoTracking()
+                .Where(f => f.Id == fanId)
+                .Select(f => new FanProfileDto
                 {
-                    Id = p.Id,
-                    Caption = p.Caption,
-                    MediaUrl = p.MediaUrl,
-                    MediaType = p.MediaType.ToString(),
-                    CreatedAt = p.CreatedAt,
-                    LikeCount = p.LikeCount,
-                    CommentCount = p.CommentCount,
-                }).ToList()
-            };
+                    Id = f.Id,
+                    Username = f.Username,
+                    DisplayName = f.DisplayName,
+                    Bio = f.Bio,
+                    ProfilePicUrl = f.ProfilePicUrl,
+                    FollowersCount = f.FollowersCount,
+                    FollowingCount = f.FollowingCount,
+                    Points = f.Points,
+                    Posts = f.Posts
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => new PostDto
+                        {
+                            Id = p.Id,
+                            Caption = p.Caption,
+                            MediaUrl = p.MediaUrl,
+                            MediaType = p.MediaType.ToString(),
+                            CreatedAt = p.CreatedAt,
+                            LikeCount = p.LikeCount,
+                            CommentCount = p.CommentCount,
+                            BookmarkCount = p.BookmarkCount,
+                            FanId = p.FanId,
+                            FanDisplayName = f.DisplayName,
+                            FanProfilePicUrl = f.ProfilePicUrl
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
+        public async Task<FanProfileDto> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
         {
-            var fan = await _context.Fans.FindAsync(fanId);
-            if (fan == null) return false;
+            var fan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == fanId);
+            if (fan == null)
+                throw new KeyNotFoundException("المشجع غير موجود.");
 
-            
-            if (dto.ProfileImage != null)
+            var oldImagePath = fan.ProfilePicUrl;
+            string? newImagePath = null;
+
+            try
             {
-                if (!string.IsNullOrEmpty(fan.ProfilePicUrl))
+                if (dto.ProfileImage != null)
                 {
-                    _fileService.DeleteFile(fan.ProfilePicUrl, "fans");
+                    newImagePath = await _fileService.SaveFileAsync(dto.ProfileImage, "fans");
+                    fan.ProfilePicUrl = newImagePath;
                 }
 
+                if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+                    fan.DisplayName = dto.DisplayName.Trim();
 
-                string newFileName = await _fileService.SaveFileAsync(dto.ProfileImage, "fans");
-                fan.ProfilePicUrl = newFileName;
+                fan.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
+
+                await _context.SaveChangesAsync();
+
+                if (!string.IsNullOrWhiteSpace(oldImagePath) &&
+                    !string.Equals(oldImagePath, fan.ProfilePicUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    _fileService.DeleteFile(oldImagePath);
+                }
+
+                return new FanProfileDto
+                {
+                    Id = fan.Id,
+                    Username = fan.Username,
+                    DisplayName = fan.DisplayName,
+                    Bio = fan.Bio,
+                    ProfilePicUrl = fan.ProfilePicUrl,
+                    FollowersCount = fan.FollowersCount,
+                    FollowingCount = fan.FollowingCount,
+                    Points = fan.Points,
+                    Posts = new List<PostDto>()
+                };
             }
+            catch
+            {
+                if (!string.IsNullOrWhiteSpace(newImagePath))
+                {
+                    _fileService.DeleteFile(newImagePath);
+                }
 
-            if (!string.IsNullOrWhiteSpace(dto.DisplayName))
-                fan.DisplayName = dto.DisplayName;
-
-            fan.Bio = dto.Bio;
-
-            _context.Fans.Update(fan);
-            return await _context.SaveChangesAsync() > 0;
+                throw;
+            }
         }
 
         public async Task<List<FanProfileDto>> SearchFansAsync(string query)
         {
-            if (string.IsNullOrWhiteSpace(query)) return new List<FanProfileDto>();
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<FanProfileDto>();
 
-            var fans = await _context.Fans
-                .Where(f => f.DisplayName.Contains(query) || f.Username.Contains(query))
+            query = query.Trim();
+
+            return await _context.Fans
                 .AsNoTracking()
+                .Where(f =>
+                    EF.Functions.Like(f.DisplayName, $"%{query}%") ||
+                    EF.Functions.Like(f.Username, $"%{query}%"))
+                .OrderBy(f => f.DisplayName)
+                .Take(20)
+                .Select(f => new FanProfileDto
+                {
+                    Id = f.Id,
+                    Username = f.Username,
+                    DisplayName = f.DisplayName,
+                    Bio = f.Bio,
+                    ProfilePicUrl = f.ProfilePicUrl,
+                    FollowersCount = f.FollowersCount,
+                    FollowingCount = f.FollowingCount,
+                    Points = f.Points,
+                    Posts = new List<PostDto>()
+                })
                 .ToListAsync();
-
-
-            return fans.Select(f => new FanProfileDto
-            {
-                Id = f.Id,
-                Username = f.Username,
-                DisplayName = f.DisplayName,
-                Bio = f.Bio,
-                ProfilePicUrl = f.ProfilePicUrl,
-                FollowersCount = f.FollowersCount,
-                FollowingCount = f.FollowingCount,
-                Points = f.Points
-            }).ToList();
         }
 
-        public async Task<bool> FollowFanAsync(int observerId, int targetId)
+        public async Task FollowFanAsync(int followerId, int followedFanId)
         {
-            
-            if (observerId == targetId) return false;
+            if (followerId == followedFanId)
+                throw new InvalidOperationException("لا يمكن للمستخدم متابعة نفسه.");
 
-            var existingFollow = await _context.Follows.FindAsync(observerId, targetId);
-            if (existingFollow != null) return false; 
+            var follower = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followerId);
+            var followedFan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followedFanId);
 
-            
+            if (follower == null || followedFan == null)
+                throw new KeyNotFoundException("أحد المستخدمين غير موجود.");
+
+            var exists = await _context.Follows.AnyAsync(f =>
+                f.FollowerId == followerId && f.FollowedFanId == followedFanId);
+
+            if (exists)
+                throw new InvalidOperationException("أنت تتابع هذا المستخدم بالفعل.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             var follow = new Follow
             {
-                ObserverId = observerId,
-                TargetId = targetId
+                FollowerId = followerId,
+                FollowedFanId = followedFanId,
+                FollowDate = DateTime.UtcNow
             };
 
-            _context.Follows.Add(follow);
+            await _context.Follows.AddAsync(follow);
+            await _context.SaveChangesAsync();
 
+            follower.FollowingCount = await _context.Follows.CountAsync(f => f.FollowerId == followerId);
+            followedFan.FollowersCount = await _context.Follows.CountAsync(f => f.FollowedFanId == followedFanId);
 
-            var observer = await _context.Fans.FindAsync(observerId);
-            var target = await _context.Fans.FindAsync(targetId);
-
-            if (observer != null) observer.FollowingCount++; 
-            if (target != null) target.FollowersCount++;     
-
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
-        public async Task<bool> UnfollowFanAsync(int observerId, int targetId)
+        public async Task UnfollowFanAsync(int followerId, int followedFanId)
         {
-            
-            var follow = await _context.Follows.FindAsync(observerId, targetId);
-            if (follow == null) return false; 
+            var follower = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followerId);
+            var followedFan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followedFanId);
 
-            
+            if (follower == null || followedFan == null)
+                throw new KeyNotFoundException("أحد المستخدمين غير موجود.");
+
+            var follow = await _context.Follows.FirstOrDefaultAsync(f =>
+                f.FollowerId == followerId && f.FollowedFanId == followedFanId);
+
+            if (follow == null)
+                throw new InvalidOperationException("أنت لا تتابع هذا المستخدم.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+
             _context.Follows.Remove(follow);
+            await _context.SaveChangesAsync();
 
-            
-            var observer = await _context.Fans.FindAsync(observerId);
-            var target = await _context.Fans.FindAsync(targetId);
+            follower.FollowingCount = await _context.Follows.CountAsync(f => f.FollowerId == followerId);
+            followedFan.FollowersCount = await _context.Follows.CountAsync(f => f.FollowedFanId == followedFanId);
 
-            if (observer != null) observer.FollowingCount--;
-            if (target != null) target.FollowersCount--;
-
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
-        public async Task<bool> IsFollowingAsync(int observerId, int targetId)
+        public async Task<bool> IsFollowingAsync(int followerId, int followedFanId)
         {
-            return await _context.Follows.AnyAsync(f => f.ObserverId == observerId && f.TargetId == targetId);
+            return await _context.Follows.AnyAsync(f =>
+                f.FollowerId == followerId && f.FollowedFanId == followedFanId);
         }
     }
 }

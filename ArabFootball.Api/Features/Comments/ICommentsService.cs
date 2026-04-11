@@ -4,7 +4,7 @@ namespace ArabFootball.Api.Features.Comments
 {
     public interface ICommentsService
     {
-        Task<CommentDto?> AddCommentAsync(CreateCommentDto dto);
+        Task<CommentDto> AddCommentAsync(int fanId, CreateCommentDto dto);
         Task<List<CommentDto>> GetPostCommentsAsync(int postId);
     }
 }

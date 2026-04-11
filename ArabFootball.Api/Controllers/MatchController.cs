@@ -1,18 +1,16 @@
 ﻿using ArabFootball.Api.Features.Enums;
-using ArabFootball.Api.Features.Matchs.MatchDto;
 using ArabFootball.Api.Features.Matchs;
+using ArabFootball.Api.Features.Matchs.MatchDto;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using api_training.Controllers;
-using ArabFootball.Api.Shared.Entity;
-using static ArabFootball.Shared.Helpers.Routing;
+using System.Security.Claims;
 
 namespace ArabFootball.Api.Controllers
 {
-    [Route(Matches.Prefix)]
+    [Route("api/[controller]")]
+    [ApiController]
     [Authorize(Roles = "Admin")]
-    public class MatchController : AppControllerBase
+    public class MatchController : ControllerBase
     {
         private readonly IMatchService _service;
 
@@ -21,67 +19,110 @@ namespace ArabFootball.Api.Controllers
             _service = service;
         }
 
-        
-        [HttpGet(Matches.GetAll)]
+        [HttpGet]
         public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            return  Response(await _service.GetAllMatchesAsync(pageNumber, pageSize, search));
+            var result = await _service.GetAllMatchesAsync(pageNumber, pageSize, search);
+            return Ok(result);
         }
 
-        [HttpGet(Matches.GetById)]
-        public async Task<IActionResult> GetById([FromRoute]int id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
         {
-            return Response(await _service.GetMatchByIdAsync(id));
+            var match = await _service.GetMatchByIdAsync(id);
+            if (match == null)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(match);
         }
 
-        [HttpPut(Matches.Add)]
-        public async Task<IActionResult> Create([FromBody]CreateMatchDto dto)
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateMatchDto dto)
         {
-            int adminId = int.Parse(User.FindFirst("UserId").Value);
-
-            return Response(await _service.CreateMatchAsync(dto, adminId));
+            try
+            {
+                int adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                var result = await _service.CreateMatchAsync(dto, adminId);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        [HttpPut(Matches.Update)]
-        public async Task<IActionResult> Update([FromRoute]int id, [FromBody]UpdateMatchDto dto)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMatchDto dto)
         {
-            return Response(await _service.UpdateMatchAsync(id, dto));
+            try
+            {
+                var result = await _service.UpdateMatchAsync(id, dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
-        [HttpDelete(Matches.Delete)]
-        public async Task<IActionResult> Delete([FromRoute]int id)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
         {
-           return Response(await _service.DeleteMatchAsync(id));
+            var result = await _service.DeleteMatchAsync(id);
+            if (!result)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(new { message = "تم حذف المباراة." });
         }
 
-        [HttpPatch(Matches.ChangeStatus)]
-        public async Task<IActionResult> ChangeStatus([FromRoute] int id, [FromBody]MatchStatus status)
+        [HttpPatch("{id}/status")]
+        public async Task<IActionResult> ChangeStatus(int id, [FromBody] MatchStatus status)
         {
-            return Response(await _service.ChangeStatusAsync(id, status));
+            var result = await _service.ChangeStatusAsync(id, status);
+            if (!result)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(new { message = "تم تحديث حالة المباراة." });
         }
 
-        [HttpPatch(Matches.OpenPredictions)]
-        public async Task<IActionResult> OpenPredictions([FromRoute]int id)
+        [HttpPatch("{id}/predictions/open")]
+        public async Task<IActionResult> OpenPredictions(int id)
         {
-            return Response(await _service.OpenPredictionsAsync(id));
+            var result = await _service.OpenPredictionsAsync(id);
+            if (!result)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(new { message = "تم فتح التوقعات." });
         }
 
-        [HttpPatch(Matches.ClosePredictions)]
-        public async Task<IActionResult> ClosePredictions([FromRoute]int id)
+        [HttpPatch("{id}/predictions/close")]
+        public async Task<IActionResult> ClosePredictions(int id)
         {
-            return Response(await _service.ClosePredictionsAsync(id));
+            var result = await _service.ClosePredictionsAsync(id);
+            if (!result)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(new { message = "تم إغلاق التوقعات." });
         }
 
-        [HttpPatch(Matches.LinkChat)]
-        public async Task<IActionResult> LinkChat([FromRoute]int id, [FromBody] string chatUrl)
+        [HttpPatch("{id}/chat/link")]
+        public async Task<IActionResult> LinkChat(int id, [FromBody] string chatUrl)
         {
-            return Response(await _service.LinkChatAsync(id, chatUrl));
+            var result = await _service.LinkChatAsync(id, chatUrl);
+            if (!result)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(new { message = "تم ربط المحادثة." });
         }
 
-        [HttpPatch(Matches.UnlinkChat)]
-        public async Task<IActionResult> UnlinkChat([FromRoute] int id)
+        [HttpPatch("{id}/chat/unlink")]
+        public async Task<IActionResult> UnlinkChat(int id)
         {
-            return Response(await (_service.UnlinkChatAsync(id)));
+            var result = await _service.UnlinkChatAsync(id);
+            if (!result)
+                return NotFound(new { message = "المباراة غير موجودة." });
+
+            return Ok(new { message = "تم فك ربط المحادثة." });
         }
     }
 }

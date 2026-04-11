@@ -2,8 +2,9 @@
 
 namespace ArabFootball.Api.Features.Likes
 {
+
     public interface ILikesService
     {
-        Task<LikeResultDto?> ToggleLikeAsync(int postId, int fanId);
+        Task<LikeResultDto> ToggleLikeAsync(int postId, int fanId);
     }
 }

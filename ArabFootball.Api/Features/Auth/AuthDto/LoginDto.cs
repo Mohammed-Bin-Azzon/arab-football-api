@@ -2,15 +2,12 @@
 
 namespace ArabFootball.Api.Features.Auth.AuthDto
 {
-    public class RegisterDto
+    public class LoginDto
     {
-        [Required, MaxLength(50)]
-        public string Username { get; set; } = null!;
-
         [Required, EmailAddress, MaxLength(256)]
         public string Email { get; set; } = null!;
 
-        [Required, MinLength(6), MaxLength(100)]
+        [Required]
         public string Password { get; set; } = null!;
     }
 }

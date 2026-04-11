@@ -1,15 +1,15 @@
-﻿using ArabFootball.Api.Features.Auth.AuthDto;
-using ArabFootball.Api.Features.Enums;
+﻿using ArabFootball.Api.Features.Enums;
+using ArabFootball.Api.Features.Matchs;
 using ArabFootball.Api.Features.Matchs.MatchDto;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
+using ArabFootball.Api.Shared.Helpers;
 using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
 
 namespace ArabFootball.Api.Features.Matchs
 {
-    public class MatchService: IMatchService
+    public class MatchService : IMatchService
     {
         private readonly AppDBContext _context;
 
@@ -18,132 +18,186 @@ namespace ArabFootball.Api.Features.Matchs
             _context = context;
         }
 
-        public async Task<ApiResponse<PaginatedResult<Match>>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
+        public async Task<PaginatedResult<MatchDetailsDto>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            var matches = await _context.Matches.
-            OrderByDescending(m => m.StartTime)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 10;
 
-            var totalCount = matches.Count();
+            var query = _context.Matches.AsNoTracking().AsQueryable();
 
-            var paginated = PaginatedResult<Match>.Success(matches, totalCount, pageNumber, pageSize);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim();
+                query = query.Where(m =>
+                    EF.Functions.Like(m.HomeTeam, $"%{search}%") ||
+                    EF.Functions.Like(m.AwayTeam, $"%{search}%") ||
+                    EF.Functions.Like(m.League, $"%{search}%"));
+            }
 
+            var totalCount = await query.CountAsync();
 
-            return ApiResponse<PaginatedResult<Match>>.Success(paginated);
+            var matches = await query
+                .OrderByDescending(m => m.StartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new MatchDetailsDto
+                {
+                    Id = m.Id,
+                    HomeTeam = m.HomeTeam,
+                    AwayTeam = m.AwayTeam,
+                    League = m.League,
+                    StartTime = m.StartTime,
+                    Status = m.Status,
+                    PredictionState = m.PredictionState,
+                    ChatUrl = m.ChatUrl,
+                    StatsJson = m.StatsJson
+                })
+                .ToListAsync();
+
+            return PaginatedResult<MatchDetailsDto>.Success(matches, totalCount, pageNumber, pageSize);
         }
 
-        public async Task<ApiResponse<Match>> GetMatchByIdAsync(int matchId)
+        public async Task<MatchDetailsDto?> GetMatchByIdAsync(int matchId)
         {
-            var match = await _context.Matches
-                .FirstOrDefaultAsync(m => m.Id == matchId);
-
-            if (match == null) 
-                return ApiResponse<Match>.Error(HttpStatusCode.NotFound,"Not found match");
-            return ApiResponse<Match>.Success(match);
+            return await _context.Matches
+                .AsNoTracking()
+                .Where(m => m.Id == matchId)
+                .Select(m => new MatchDetailsDto
+                {
+                    Id = m.Id,
+                    HomeTeam = m.HomeTeam,
+                    AwayTeam = m.AwayTeam,
+                    League = m.League,
+                    StartTime = m.StartTime,
+                    Status = m.Status,
+                    PredictionState = m.PredictionState,
+                    ChatUrl = m.ChatUrl,
+                    StatsJson = m.StatsJson
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<ApiResponse<Match>> CreateMatchAsync(CreateMatchDto dto, int adminId)
+        public async Task<MatchDetailsDto> CreateMatchAsync(CreateMatchDto dto, int adminId)
         {
+            var adminExists = await _context.Admins.AnyAsync(a => a.Id == adminId);
+            if (!adminExists)
+                throw new InvalidOperationException("المشرف غير موجود.");
+
             var match = new Match
             {
                 AdminId = adminId,
-                HomeTeam = dto.HomeTeam,
-                AwayTeam = dto.AwayTeam,
-                League = dto.League,
+                HomeTeam = dto.HomeTeam.Trim(),
+                AwayTeam = dto.AwayTeam.Trim(),
+                League = dto.League.Trim(),
                 StartTime = dto.StartTime,
-                Stats = dto.Stats
+                StatsJson = dto.StatsJson,
+                Status = MatchStatus.Upcoming,
+                PredictionState = PredictionState.Open
             };
 
-            _context.Matches.Add(match);
+            await _context.Matches.AddAsync(match);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<Match>.Success(match,"Created Match");
+            return new MatchDetailsDto
+            {
+                Id = match.Id,
+                HomeTeam = match.HomeTeam,
+                AwayTeam = match.AwayTeam,
+                League = match.League,
+                StartTime = match.StartTime,
+                Status = match.Status,
+                PredictionState = match.PredictionState,
+                ChatUrl = match.ChatUrl,
+                StatsJson = match.StatsJson
+            };
         }
 
-        public async Task<ApiResponse<Match>> UpdateMatchAsync(int matchId, UpdateMatchDto dto)
+        public async Task<MatchDetailsDto> UpdateMatchAsync(int matchId, UpdateMatchDto dto)
         {
-            var match = await _context.Matches.FindAsync(matchId);
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
             if (match == null)
-                return ApiResponse<Match>.Error(HttpStatusCode.NotFound, "Not found match");
+                throw new KeyNotFoundException("المباراة غير موجودة.");
 
-            match.HomeTeam = dto.HomeTeam;
-            match.AwayTeam = dto.AwayTeam;
-            match.League = dto.League;
+            match.HomeTeam = dto.HomeTeam.Trim();
+            match.AwayTeam = dto.AwayTeam.Trim();
+            match.League = dto.League.Trim();
             match.StartTime = dto.StartTime;
-            match.Stats = dto.Stats;
+            match.StatsJson = dto.StatsJson;
 
             await _context.SaveChangesAsync();
-            return ApiResponse<Match>.Success(match,"Updated Successed");
+
+            return new MatchDetailsDto
+            {
+                Id = match.Id,
+                HomeTeam = match.HomeTeam,
+                AwayTeam = match.AwayTeam,
+                League = match.League,
+                StartTime = match.StartTime,
+                Status = match.Status,
+                PredictionState = match.PredictionState,
+                ChatUrl = match.ChatUrl,
+                StatsJson = match.StatsJson
+            };
         }
 
-        public async Task<ApiResponse<bool>> DeleteMatchAsync(int matchId)
+        public async Task<bool> DeleteMatchAsync(int matchId)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Not found match");
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            if (match == null) return false;
 
             _context.Matches.Remove(match);
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true, "Match deleted");
+            return true;
         }
 
-        public async Task<ApiResponse<bool>> ChangeStatusAsync(int matchId, MatchStatus status)
+        public async Task<bool> ChangeStatusAsync(int matchId, MatchStatus status)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Not found match");
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            if (match == null) return false;
 
             match.Status = status;
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true, "Match Status Changed");
+            return true;
         }
 
-        public async Task<ApiResponse<bool>> OpenPredictionsAsync(int matchId)
+        public async Task<bool> OpenPredictionsAsync(int matchId)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Not found match");
-
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            if (match == null) return false;
 
             match.PredictionState = PredictionState.Open;
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true, "Match Predictions Open");
+            return true;
         }
 
-        public async Task<ApiResponse<bool>> ClosePredictionsAsync(int matchId)
+        public async Task<bool> ClosePredictionsAsync(int matchId)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Not found match");
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            if (match == null) return false;
 
             match.PredictionState = PredictionState.Closed;
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true, "Match Predictions Closed");
+            return true;
         }
 
-        public async Task<ApiResponse<bool>> LinkChatAsync(int matchId, string chatUrl)
+        public async Task<bool> LinkChatAsync(int matchId, string chatUrl)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Not found match");
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            if (match == null) return false;
 
             match.ChatUrl = chatUrl;
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true, "Match link with chat");
+            return true;
         }
 
-        public async Task<ApiResponse<bool>> UnlinkChatAsync(int matchId)
+        public async Task<bool> UnlinkChatAsync(int matchId)
         {
-            var match = await _context.Matches.FindAsync(matchId);
-            if (match == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Not found match");
-
+            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+            if (match == null) return false;
 
             match.ChatUrl = null;
             await _context.SaveChangesAsync();
-            return ApiResponse<bool>.Success(true, "Match unlink with chat");
+            return true;
         }
     }
 }

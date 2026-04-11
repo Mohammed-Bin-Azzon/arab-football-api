@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Fans;
 using ArabFootball.Api.Features.Fans.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace ArabFootball.Api.Features.Fans
+namespace ArabFootball.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] 
+    [Route("api/[controller]")]
     public class FansController : ControllerBase
     {
         private readonly IFansService _fansService;
@@ -14,33 +17,34 @@ namespace ArabFootball.Api.Features.Fans
             _fansService = fansService;
         }
 
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProfile(int id)
         {
             var profile = await _fansService.GetProfileAsync(id);
-
             if (profile == null)
-            {
-                return NotFound(new { message = "المشجع غير موجود" });
-            }
+                return NotFound(new { message = "المشجع غير موجود." });
 
             return Ok(profile);
         }
 
-
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateProfile(int id, [FromForm] UpdateFanProfileDto dto)
+        [Authorize]
+        [HttpPatch("me")]
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateFanProfileDto dto)
         {
-
-            var result = await _fansService.UpdateProfileAsync(id, dto);
-
-            if (!result)
+            try
             {
-                return BadRequest(new { message = "فشل تحديث البيانات، تأكد من صحة المعرف" });
+                var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                var result = await _fansService.UpdateProfileAsync(fanId, dto);
+                return Ok(result);
             }
-
-            return Ok(new { message = "تم تحديث الملف الشخصي بنجاح" });
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("search")]
@@ -50,37 +54,52 @@ namespace ArabFootball.Api.Features.Fans
             return Ok(results);
         }
 
-
-        // POST: api/fans/{targetId}/follow?observerId=1
+        [Authorize]
         [HttpPost("{targetId}/follow")]
-        public async Task<IActionResult> Follow(int targetId, [FromQuery] int observerId)
+        public async Task<IActionResult> Follow(int targetId)
         {
-
-            var result = await _fansService.FollowFanAsync(observerId, targetId);
-
-            if (!result)
-                return BadRequest("لا يمكن إتمام المتابعة (تأكد من المعرفات أو أنك تتابعه بالفعل)");
-
-            return Ok(new { message = "تمت المتابعة بنجاح" });
+            try
+            {
+                var followerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                await _fansService.FollowFanAsync(followerId, targetId);
+                return Ok(new { message = "تمت المتابعة بنجاح." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-
+        [Authorize]
         [HttpDelete("{targetId}/unfollow")]
-        public async Task<IActionResult> Unfollow(int targetId, [FromQuery] int observerId)
+        public async Task<IActionResult> Unfollow(int targetId)
         {
-            var result = await _fansService.UnfollowFanAsync(observerId, targetId);
-
-            if (!result)
-                return BadRequest("أنت لا تتابع هذا المستخدم");
-
-            return Ok(new { message = "تم إلغاء المتابعة" });
+            try
+            {
+                var followerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                await _fansService.UnfollowFanAsync(followerId, targetId);
+                return Ok(new { message = "تم إلغاء المتابعة بنجاح." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-
+        [Authorize]
         [HttpGet("{targetId}/is-following")]
-        public async Task<IActionResult> CheckIsFollowing(int targetId, [FromQuery] int observerId)
+        public async Task<IActionResult> CheckIsFollowing(int targetId)
         {
-            var isFollowing = await _fansService.IsFollowingAsync(observerId, targetId);
+            var followerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var isFollowing = await _fansService.IsFollowingAsync(followerId, targetId);
             return Ok(new { isFollowing });
         }
     }

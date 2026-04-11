@@ -2,8 +2,9 @@
 {
     public enum MatchStatus
     {
-        Scheduled = 1,
-        Live = 2,
-        Finished = 3,
+        Upcoming,
+        Live,
+        Finished,
+        Cancelled
     }
 }

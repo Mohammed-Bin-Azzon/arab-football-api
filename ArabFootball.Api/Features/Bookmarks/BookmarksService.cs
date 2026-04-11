@@ -14,10 +14,17 @@ namespace ArabFootball.Api.Features.Bookmarks
             _context = context;
         }
 
-        public async Task<BookmarkResultDto?> ToggleBookmarkAsync(int postId, int fanId)
+        public async Task<BookmarkResultDto> ToggleBookmarkAsync(int postId, int fanId)
         {
-            var post = await _context.Posts.FindAsync(postId);
-            if (post == null) return null;
+            var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
+            if (!fanExists)
+                throw new InvalidOperationException("المستخدم غير موجود.");
+
+            var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+                throw new KeyNotFoundException("المنشور غير موجود.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
             var existingBookmark = await _context.Bookmarks
                 .FirstOrDefaultAsync(b => b.PostId == postId && b.FanId == fanId);
@@ -27,7 +34,6 @@ namespace ArabFootball.Api.Features.Bookmarks
             if (existingBookmark != null)
             {
                 _context.Bookmarks.Remove(existingBookmark);
-                post.BookmarkCount--; 
                 isBookmarked = false;
             }
             else
@@ -38,18 +44,32 @@ namespace ArabFootball.Api.Features.Bookmarks
                     FanId = fanId,
                     CreatedAt = DateTime.UtcNow
                 };
+
                 await _context.Bookmarks.AddAsync(newBookmark);
-                post.BookmarkCount++; 
                 isBookmarked = true;
             }
 
-            await _context.SaveChangesAsync();
-
-            return new BookmarkResultDto
+            try
             {
-                IsBookmarked = isBookmarked,
-                NewBookmarkCount = post.BookmarkCount
-            };
+                await _context.SaveChangesAsync();
+
+                var actualBookmarkCount = await _context.Bookmarks.CountAsync(b => b.PostId == postId);
+                post.BookmarkCount = actualBookmarkCount;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return new BookmarkResultDto
+                {
+                    IsBookmarked = isBookmarked,
+                    NewBookmarkCount = actualBookmarkCount
+                };
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync();
+                throw new InvalidOperationException("تعذر تنفيذ العملية بسبب تعارض في البيانات. أعد المحاولة.");
+            }
         }
     }
 }

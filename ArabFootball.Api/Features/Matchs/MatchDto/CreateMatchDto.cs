@@ -4,22 +4,18 @@ namespace ArabFootball.Api.Features.Matchs.MatchDto
 {
     public class CreateMatchDto
     {
-        [Required]
-        [MaxLength(100)]
-        public string HomeTeam { get; set; }
+        [Required, MaxLength(100)]
+        public string HomeTeam { get; set; } = null!;
 
-        [Required]
-        [MaxLength(100)]
-        public string AwayTeam { get; set; }
+        [Required, MaxLength(100)]
+        public string AwayTeam { get; set; } = null!;
 
-        [Required]
-        [MaxLength(100)]
-        public string League { get; set; }
+        [Required, MaxLength(100)]
+        public string League { get; set; } = null!;
 
         [Required]
         public DateTime StartTime { get; set; }
 
-        // JSON as string (اختياري)
-        public string Stats { get; set; }
+        public string? StatsJson { get; set; }
     }
 }

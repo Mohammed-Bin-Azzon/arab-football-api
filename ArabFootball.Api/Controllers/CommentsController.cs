@@ -1,5 +1,7 @@
-﻿using ArabFootball.Api.Features.Comments;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Comments.CommentsDto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArabFootball.Api.Controllers
@@ -15,12 +17,24 @@ namespace ArabFootball.Api.Controllers
             _commentsService = commentsService;
         }
 
-        [HttpPost("add")]
+        [Authorize]
+        [HttpPost]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
-            var result = await _commentsService.AddCommentAsync(dto);
-            if (result == null) return NotFound(new { message = "المنشور غير موجود" });
-            return Ok(result);
+            try
+            {
+                var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                var result = await _commentsService.AddCommentAsync(fanId, dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpGet("post/{postId}")]
@@ -31,4 +45,3 @@ namespace ArabFootball.Api.Controllers
         }
     }
 }
-

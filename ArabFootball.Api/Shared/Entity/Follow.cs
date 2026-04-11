@@ -2,15 +2,12 @@
 {
     public class Follow
     {
-        
-        public int ObserverId { get; set; }
-        public Fan Observer { get; set; }
+        public int FollowerId { get; set; }
+        public Fan Follower { get; set; } = null!;
 
-        
-        public int TargetId { get; set; }
-        public Fan Target { get; set; }
+        public int FollowedFanId { get; set; }
+        public Fan FollowedFan { get; set; } = null!;
 
-  
         public DateTime FollowDate { get; set; } = DateTime.UtcNow;
     }
 }

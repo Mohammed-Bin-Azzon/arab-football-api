@@ -1,13 +1,11 @@
-﻿using System.Text.Json.Serialization;
-
-namespace ArabFootball.Api.Features.Auth.AuthDto
+﻿namespace ArabFootball.Api.Features.Auth.AuthDto
 {
     public class AuthResponseDto
     {
-        public string Username { get; set; }
-        public string Email { get; set; }
-        //public string Token { get; set; }
-        //[JsonIgnore]
-        //public DateTime ExpireOn { get; set; }
+        public int UserId { get; set; }
+        public string Username { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Role { get; set; } = null!;
+        public string Token { get; set; } = null!;
     }
 }

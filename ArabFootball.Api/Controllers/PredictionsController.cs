@@ -1,11 +1,14 @@
-﻿using ArabFootball.Api.Features.Predictions;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Predictions;
 using ArabFootball.Api.Features.Predictions.PredictionsDto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PredictionsController : ControllerBase
     {
         private readonly IPredictionsService _predictionsService;
@@ -18,16 +21,28 @@ namespace ArabFootball.Api.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> SubmitPrediction([FromBody] SubmitPredictionDto dto)
         {
-            var result = await _predictionsService.SubmitPredictionAsync(dto);
-            return Ok(result);
+            try
+            {
+                var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+                var result = await _predictionsService.SubmitPredictionAsync(fanId, dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        [HttpGet("fan/{fanId}")]
-        public async Task<IActionResult> GetFanPredictions(int fanId)
+        [HttpGet("me")]
+        public async Task<IActionResult> GetMyPredictions()
         {
-            var predictions = await _predictionsService.GetFanPredictionsAsync(fanId);
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var predictions = await _predictionsService.GetMyPredictionsAsync(fanId);
             return Ok(predictions);
         }
     }
 }
-

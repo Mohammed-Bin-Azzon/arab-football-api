@@ -1,21 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ArabFootball.Api.Features.Enums;
 
 namespace ArabFootball.Api.Features.Matchs.MatchDto
 {
-    public class UpdateMatchDto
+    public class MatchDetailsDto
     {
-        [Required, MaxLength(100)]
+        public int Id { get; set; }
         public string HomeTeam { get; set; } = null!;
-
-        [Required, MaxLength(100)]
         public string AwayTeam { get; set; } = null!;
-
-        [Required, MaxLength(100)]
         public string League { get; set; } = null!;
-
-        [Required]
         public DateTime StartTime { get; set; }
-
+        public MatchStatus Status { get; set; }
+        public PredictionState PredictionState { get; set; }
+        public string? ChatUrl { get; set; }
         public string? StatsJson { get; set; }
     }
 }
