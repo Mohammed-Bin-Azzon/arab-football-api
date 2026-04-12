@@ -1,5 +1,4 @@
-﻿using System.Text;
-using ArabFootball.Api.Features.Auth;
+﻿using ArabFootball.Api.Features.Auth;
 using ArabFootball.Api.Features.Bookmarks;
 using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Fans;
@@ -9,10 +8,12 @@ using ArabFootball.Api.Features.Posts.Services;
 using ArabFootball.Api.Features.Predictions;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Helpers;
+using ArabFootball.Api.Shared.Seeding;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,14 +101,23 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<AppDBContext>();
+
+    await context.Database.MigrateAsync();
+    await DbInitializer.SeedAdminsAsync(context);
+}
+
 // Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    //app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseAuthentication();

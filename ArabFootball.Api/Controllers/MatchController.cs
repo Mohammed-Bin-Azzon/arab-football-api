@@ -9,7 +9,7 @@ namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    
     public class MatchController : ControllerBase
     {
         private readonly IMatchService _service;
@@ -35,7 +35,7 @@ namespace ArabFootball.Api.Controllers
 
             return Ok(match);
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateMatchDto dto)
         {
@@ -50,7 +50,7 @@ namespace ArabFootball.Api.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateMatchDto dto)
         {
@@ -65,6 +65,7 @@ namespace ArabFootball.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -75,6 +76,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(new { message = "تم حذف المباراة." });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/status")]
         public async Task<IActionResult> ChangeStatus(int id, [FromBody] MatchStatus status)
         {
@@ -85,6 +87,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(new { message = "تم تحديث حالة المباراة." });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/predictions/open")]
         public async Task<IActionResult> OpenPredictions(int id)
         {
@@ -95,6 +98,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(new { message = "تم فتح التوقعات." });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPatch("{id}/predictions/close")]
         public async Task<IActionResult> ClosePredictions(int id)
         {
@@ -105,6 +109,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(new { message = "تم إغلاق التوقعات." });
         }
 
+
         [HttpPatch("{id}/chat/link")]
         public async Task<IActionResult> LinkChat(int id, [FromBody] string chatUrl)
         {
@@ -114,6 +119,7 @@ namespace ArabFootball.Api.Controllers
 
             return Ok(new { message = "تم ربط المحادثة." });
         }
+
 
         [HttpPatch("{id}/chat/unlink")]
         public async Task<IActionResult> UnlinkChat(int id)

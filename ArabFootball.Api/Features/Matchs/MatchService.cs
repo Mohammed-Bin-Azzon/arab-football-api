@@ -89,7 +89,7 @@ namespace ArabFootball.Api.Features.Matchs
                 HomeTeam = dto.HomeTeam.Trim(),
                 AwayTeam = dto.AwayTeam.Trim(),
                 League = dto.League.Trim(),
-                StartTime = dto.StartTime,
+                StartTime = dto.StartTime.ToUniversalTime(),
                 StatsJson = dto.StatsJson,
                 Status = MatchStatus.Upcoming,
                 PredictionState = PredictionState.Open
@@ -104,7 +104,7 @@ namespace ArabFootball.Api.Features.Matchs
                 HomeTeam = match.HomeTeam,
                 AwayTeam = match.AwayTeam,
                 League = match.League,
-                StartTime = match.StartTime,
+                StartTime = dto.StartTime.ToUniversalTime(),
                 Status = match.Status,
                 PredictionState = match.PredictionState,
                 ChatUrl = match.ChatUrl,
@@ -121,7 +121,7 @@ namespace ArabFootball.Api.Features.Matchs
             match.HomeTeam = dto.HomeTeam.Trim();
             match.AwayTeam = dto.AwayTeam.Trim();
             match.League = dto.League.Trim();
-            match.StartTime = dto.StartTime;
+            match.StartTime = dto.StartTime.ToUniversalTime();
             match.StatsJson = dto.StatsJson;
 
             await _context.SaveChangesAsync();
@@ -132,7 +132,7 @@ namespace ArabFootball.Api.Features.Matchs
                 HomeTeam = match.HomeTeam,
                 AwayTeam = match.AwayTeam,
                 League = match.League,
-                StartTime = match.StartTime,
+                StartTime = dto.StartTime.ToUniversalTime(),
                 Status = match.Status,
                 PredictionState = match.PredictionState,
                 ChatUrl = match.ChatUrl,
