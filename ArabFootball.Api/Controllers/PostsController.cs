@@ -8,6 +8,7 @@ namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PostsController : ControllerBase
     {
         private readonly IPostsService _postsService;
@@ -17,7 +18,7 @@ namespace ArabFootball.Api.Controllers
             _postsService = postsService;
         }
 
-        [Authorize]
+        
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] CreatePostDto dto)
         {
@@ -33,6 +34,7 @@ namespace ArabFootball.Api.Controllers
             }
         }
 
+        
         [HttpGet("feed")]
         public async Task<IActionResult> GetFeed()
         {
@@ -40,7 +42,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(posts);
         }
 
-        [Authorize]
+        
         [HttpDelete("{postId}")]
         public async Task<IActionResult> Delete(int postId)
         {

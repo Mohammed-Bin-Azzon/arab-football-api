@@ -8,6 +8,7 @@ namespace ArabFootball.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class FansController : ControllerBase
     {
         private readonly IFansService _fansService;
@@ -27,7 +28,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(profile);
         }
 
-        [Authorize]
+        
         [HttpPatch("me")]
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateFanProfileDto dto)
         {
@@ -54,7 +55,7 @@ namespace ArabFootball.Api.Controllers
             return Ok(results);
         }
 
-        [Authorize]
+        
         [HttpPost("{targetId}/follow")]
         public async Task<IActionResult> Follow(int targetId)
         {
@@ -74,7 +75,7 @@ namespace ArabFootball.Api.Controllers
             }
         }
 
-        [Authorize]
+        
         [HttpDelete("{targetId}/unfollow")]
         public async Task<IActionResult> Unfollow(int targetId)
         {
@@ -94,7 +95,7 @@ namespace ArabFootball.Api.Controllers
             }
         }
 
-        [Authorize]
+        
         [HttpGet("{targetId}/is-following")]
         public async Task<IActionResult> CheckIsFollowing(int targetId)
         {

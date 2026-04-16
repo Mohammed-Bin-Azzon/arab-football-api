@@ -9,6 +9,7 @@ namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     
     public class MatchController : ControllerBase
     {

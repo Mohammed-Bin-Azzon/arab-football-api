@@ -7,6 +7,7 @@ namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class BookmarksController : ControllerBase
     {
         private readonly IBookmarksService _bookmarksService;
@@ -16,7 +17,7 @@ namespace ArabFootball.Api.Controllers
             _bookmarksService = bookmarksService;
         }
 
-        [Authorize]
+        
         [HttpPost("toggle/{postId}")]
         public async Task<IActionResult> ToggleBookmark(int postId)
         {

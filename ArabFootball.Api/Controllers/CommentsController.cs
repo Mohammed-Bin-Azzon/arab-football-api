@@ -8,6 +8,7 @@ namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CommentsController : ControllerBase
     {
         private readonly ICommentsService _commentsService;
@@ -17,7 +18,7 @@ namespace ArabFootball.Api.Controllers
             _commentsService = commentsService;
         }
 
-        [Authorize]
+        
         [HttpPost]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
