@@ -32,5 +32,18 @@
             public const string UnlinkChat = Prefix + "/{id:int}/unlink-chat";
 
         }
+        public static class Chats
+        {
+            public const string Prefix = Rule + "Chats";
+
+            public const string GetAll = Prefix;
+            public const string GetById = Prefix + "/{id:int}";
+            public const string CreatePrivate = Prefix + "/{id:int}/create-private";
+            public const string CreateGroup = Prefix + "/{id:int}/create-group";
+            public const string CreateMatch = Prefix + "/{id:int}/create-match/{matchId}";
+            public const string AddMember = Prefix + "/{id:int}/add-member";
+            public const string RemoveMember = Prefix + "/{id:int}/remove-member";
+        }
+
     }
 }

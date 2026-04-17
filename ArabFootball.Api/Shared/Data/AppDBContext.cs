@@ -12,6 +12,7 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Follow> Follows { get; set; }
         public DbSet<Match> Matches { get; set; }
+        public DbSet<Chat> Chats { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Like> Likes { get; set; }
         public DbSet<Comment> Comments { get; set; }
