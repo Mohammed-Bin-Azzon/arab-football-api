@@ -41,8 +41,7 @@
             public const string CreatePrivate = Prefix + "/{id:int}/create-private";
             public const string CreateGroup = Prefix + "/{id:int}/create-group";
             public const string CreateMatch = Prefix + "/{id:int}/create-match/{matchId}";
-            public const string AddMember = Prefix + "/{id:int}/add-member";
-            public const string RemoveMember = Prefix + "/{id:int}/remove-member";
+
         }
 
     }

@@ -13,11 +13,6 @@ namespace ArabFootball.Api.Features.Chats
         Task<ApiResponse<Chat>> CreatePrivateChat(int fan1Id, int fan2Id);
         Task<ApiResponse<Chat>> CreateGroupChat(string title, List<int> memberIds);
         Task<ApiResponse<Chat>> CreateMatchChat(int matchId);
-
-        // Members
-        Task<ApiResponse<bool>> AddMember(int chatId, int fanId);
-        Task<ApiResponse<bool>> RemoveMember(int chatId, int fanId);
-
         
     }
 }
