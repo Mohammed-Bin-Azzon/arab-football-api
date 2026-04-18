@@ -147,44 +147,5 @@ namespace ArabFootball.Api.Features.Chats
             return ApiResponse<Chat>.Success(chat, "Chat Created");
         }
 
-
-        public async Task<ApiResponse<bool>> AddMember(int chatId, int fanId)
-        {
-            var exists = await _context.ChatMembers
-                .AnyAsync(x => x.ChatId == chatId && x.FanId == fanId);
-
-            if (exists!= null)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "User already in chat");
-
-            var member = new ChatMember
-            {
-                ChatId = chatId,
-                FanId = fanId,
-                JoinedAt = DateTime.UtcNow
-            };
-
-            _context.ChatMembers.Add(member);
-            await _context.SaveChangesAsync();
-
-            return ApiResponse<bool>.Success(true, "Member added");
-
-        }
-
-        public async Task<ApiResponse<bool>> RemoveMember(int chatId, int fanId)
-        {
-            var member = await _context.ChatMembers
-                .FirstOrDefaultAsync(x => x.ChatId == chatId && x.FanId == fanId);
-
-            if (member == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Member not found");
-
-
-            _context.ChatMembers.Remove(member);
-            await _context.SaveChangesAsync();
-
-            return ApiResponse<bool>.Success(true, "Member removed");
-
-        }
-
     }
 }
