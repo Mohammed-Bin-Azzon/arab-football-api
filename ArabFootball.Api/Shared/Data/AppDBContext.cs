@@ -13,6 +13,7 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Follow> Follows { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<Chat> Chats { get; set; }
+        public DbSet<ChatMember> ChatMembers { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Like> Likes { get; set; }
         public DbSet<Comment> Comments { get; set; }
@@ -34,9 +35,12 @@ namespace ArabFootball.Api.Shared.Data
 
             base.OnModelCreating(modelBuilder);
 
-            
+            //يمنع تكرار نفس المستخدم في نفس الشات
+            modelBuilder.Entity<ChatMember>()
+                .HasIndex(x => new { x.ChatId, x.FanId })
+                .IsUnique();
 
-            
+
             modelBuilder.Entity<Follow>(entity =>
             {
                 
