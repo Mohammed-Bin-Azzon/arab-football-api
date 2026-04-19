@@ -8,12 +8,13 @@ namespace ArabFootball.Api.Shared.Data
         public AppDBContext(DbContextOptions<AppDBContext> options) : base(options)
         {
         }
-
+        
         public DbSet<User> Users => Set<User>();
         public DbSet<Fan> Fans => Set<Fan>();
         public DbSet<Admin> Admins => Set<Admin>();
         public DbSet<Follow> Follows => Set<Follow>();
         public DbSet<Match> Matches => Set<Match>();
+        public DbSet<Chat> Chats => Set<Chat>();
         public DbSet<Post> Posts => Set<Post>();
         public DbSet<Like> Likes => Set<Like>();
         public DbSet<Comment> Comments => Set<Comment>();
