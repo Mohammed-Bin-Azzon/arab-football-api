@@ -1,5 +1,7 @@
 ﻿using ArabFootball.Api.Features.Auth;
 using ArabFootball.Api.Features.Bookmarks;
+using ArabFootball.Api.Features.ChatMembers;
+using ArabFootball.Api.Features.Chats;
 using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Fans;
 using ArabFootball.Api.Features.Likes;
@@ -64,6 +66,8 @@ builder.Services.AddScoped<IBookmarksService, BookmarksService>();
 builder.Services.AddScoped<IFansService, FansService>();
 builder.Services.AddScoped<IPredictionsService, PredictionsService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IChatMemberService, ChatMemberService>();
 
 // DbContext
 builder.Services.AddDbContext<AppDBContext>(options =>
