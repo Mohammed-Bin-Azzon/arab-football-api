@@ -6,6 +6,7 @@ using ArabFootball.Api.Features.Auth.AuthDto;
 using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
+using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -23,63 +24,92 @@ namespace ArabFootball.Api.Features.Auth
             _configuration = configuration;
         }
 
-        public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
+        public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
         {
-            var username = dto.Username.Trim();
-            var email = dto.Email.Trim().ToLowerInvariant();
-
-            if (await _context.Users.AnyAsync(u => u.Username == username))
-                throw new InvalidOperationException("اسم المستخدم مستخدم بالفعل.");
-
-            if (await _context.Users.AnyAsync(u => u.Email == email))
-                throw new InvalidOperationException("البريد الإلكتروني مستخدم بالفعل.");
-
-            var fan = new Fan
+            try
             {
-                Username = username,
-                Email = email,
-                PasswordHash = HashPassword(dto.Password),
-                Role = UserRole.Fan,
-                DisplayName = username,
-                CreatedAt = DateTime.UtcNow
-            };
+                var username = dto.Username.Trim();
+                var email = dto.Email.Trim().ToLowerInvariant();
 
-            await _context.Fans.AddAsync(fan);
-            await _context.SaveChangesAsync();
+                if (await _context.Users.AnyAsync(u => u.Username == username))
+                {
+                    return ApiResponse<AuthResponseDto>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "اسم المستخدم مستخدم بالفعل.");
+                }
 
-            var token = GenerateJwtToken(fan);
+                if (await _context.Users.AnyAsync(u => u.Email == email))
+                {
+                    return ApiResponse<AuthResponseDto>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "البريد الإلكتروني مستخدم بالفعل.");
+                }
 
-            return new AuthResponseDto
+                var fan = new Fan
+                {
+                    Username = username,
+                    Email = email,
+                    PasswordHash = HashPassword(dto.Password),
+                    Role = UserRole.Fan,
+                    DisplayName = username,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.Fans.AddAsync(fan);
+                await _context.SaveChangesAsync();
+
+                var authResponse = BuildAuthResponse(fan);
+
+                return ApiResponse<AuthResponseDto>.Success(
+                    authResponse,
+                    "تم إنشاء الحساب بنجاح.");
+            }
+            catch (Exception)
             {
-                UserId = fan.Id,
-                Username = fan.Username,
-                Email = fan.Email,
-                Role = fan.Role.ToString(),
-                Token = token
-            };
+                return ApiResponse<AuthResponseDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء إنشاء الحساب.");
+            }
         }
 
-        public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
+        public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginDto dto)
         {
-            var email = dto.Email.Trim().ToLowerInvariant();
-
-            var user = await _context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Email == email);
-
-            if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
-                throw new InvalidOperationException("بيانات الدخول غير صحيحة.");
-
-            var token = GenerateJwtToken(user);
-
-            return new AuthResponseDto
+            try
             {
-                UserId = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                Role = user.Role.ToString(),
-                Token = token
-            };
+                var email = dto.Email.Trim().ToLowerInvariant();
+
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Email == email);
+
+                if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
+                {
+                    return ApiResponse<AuthResponseDto>.Fail(
+                        HttpStatusCode.Unauthorized,
+                        "بيانات الدخول غير صحيحة.");
+                }
+
+                var authResponse = BuildAuthResponse(user);
+
+                return ApiResponse<AuthResponseDto>.Success(
+                    authResponse,
+                    "تم تسجيل الدخول بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<AuthResponseDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء تسجيل الدخول.");
+            }
+        }
+
+        public Task<ApiResponse<object>> LogoutAsync()
+        {
+            // إذا لم يكن عندك refresh token / blacklist بعد، فهذا يكفي حاليًا
+            return Task.FromResult(
+                ApiResponse<object>.Success(
+                    null,
+                    "تم تسجيل الخروج بنجاح."));
         }
 
         public string HashPassword(string password)
@@ -92,16 +122,32 @@ namespace ArabFootball.Api.Features.Auth
             return BCrypt.Net.BCrypt.Verify(password, passwordHash);
         }
 
+        private AuthResponseDto BuildAuthResponse(User user)
+        {
+            var token = GenerateJwtToken(user);
+
+            return new AuthResponseDto
+            {
+                UserId = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                Role = user.Role.ToString(),
+                Token = token
+            };
+        }
+
         private string GenerateJwtToken(User user)
         {
-            var key = _configuration["Jwt:Key"]
-                ?? throw new InvalidOperationException("JWT key is missing.");
+            var key = _configuration["Jwt:Key"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
 
-            var issuer = _configuration["Jwt:Issuer"]
-                ?? throw new InvalidOperationException("JWT issuer is missing.");
-
-            var audience = _configuration["Jwt:Audience"]
-                ?? throw new InvalidOperationException("JWT audience is missing.");
+            if (string.IsNullOrWhiteSpace(key) ||
+                string.IsNullOrWhiteSpace(issuer) ||
+                string.IsNullOrWhiteSpace(audience))
+            {
+                throw new InvalidOperationException("JWT configuration is missing.");
+            }
 
             var expiresInMinutesString = _configuration["Jwt:ExpiresInMinutes"];
             if (!int.TryParse(expiresInMinutesString, out var expiresInMinutes))

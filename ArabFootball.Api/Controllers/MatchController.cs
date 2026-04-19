@@ -1,6 +1,7 @@
 ﻿using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Features.Matchs;
 using ArabFootball.Api.Features.Matchs.MatchDto;
+using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -10,7 +11,6 @@ namespace ArabFootball.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    
     public class MatchController : ControllerBase
     {
         private readonly IMatchService _service;
@@ -23,113 +23,86 @@ namespace ArabFootball.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            var result = await _service.GetAllMatchesAsync(pageNumber, pageSize, search);
-            return Ok(result);
+            var response = await _service.GetAllMatchesAsync(pageNumber, pageSize, search);
+            return this.ToActionResult(response);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var match = await _service.GetMatchByIdAsync(id);
-            if (match == null)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(match);
+            var response = await _service.GetMatchByIdAsync(id);
+            return this.ToActionResult(response);
         }
+
         [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateMatchDto dto)
         {
-            try
-            {
-                int adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-                var result = await _service.CreateMatchAsync(dto, adminId);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات المباراة غير صالحة.");
+
+            int adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _service.CreateMatchAsync(dto, adminId);
+            return this.ToActionResult(response);
         }
+
         [Authorize(Roles = "Admin")]
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateMatchDto dto)
         {
-            try
-            {
-                var result = await _service.UpdateMatchAsync(id, dto);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات تحديث المباراة غير صالحة.");
+
+            var response = await _service.UpdateMatchAsync(id, dto);
+            return this.ToActionResult(response);
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _service.DeleteMatchAsync(id);
-            if (!result)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(new { message = "تم حذف المباراة." });
+            var response = await _service.DeleteMatchAsync(id);
+            return this.ToActionResult(response);
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPatch("{id}/status")]
+        [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> ChangeStatus(int id, [FromBody] MatchStatus status)
         {
-            var result = await _service.ChangeStatusAsync(id, status);
-            if (!result)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(new { message = "تم تحديث حالة المباراة." });
+            var response = await _service.ChangeStatusAsync(id, status);
+            return this.ToActionResult(response);
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPatch("{id}/predictions/open")]
+        [HttpPatch("{id:int}/predictions/open")]
         public async Task<IActionResult> OpenPredictions(int id)
         {
-            var result = await _service.OpenPredictionsAsync(id);
-            if (!result)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(new { message = "تم فتح التوقعات." });
+            var response = await _service.OpenPredictionsAsync(id);
+            return this.ToActionResult(response);
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPatch("{id}/predictions/close")]
+        [HttpPatch("{id:int}/predictions/close")]
         public async Task<IActionResult> ClosePredictions(int id)
         {
-            var result = await _service.ClosePredictionsAsync(id);
-            if (!result)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(new { message = "تم إغلاق التوقعات." });
+            var response = await _service.ClosePredictionsAsync(id);
+            return this.ToActionResult(response);
         }
 
-
-        [HttpPatch("{id}/chat/link")]
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/chat/link")]
         public async Task<IActionResult> LinkChat(int id, [FromBody] string chatUrl)
         {
-            var result = await _service.LinkChatAsync(id, chatUrl);
-            if (!result)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(new { message = "تم ربط المحادثة." });
+            var response = await _service.LinkChatAsync(id, chatUrl);
+            return this.ToActionResult(response);
         }
 
-
-        [HttpPatch("{id}/chat/unlink")]
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/chat/unlink")]
         public async Task<IActionResult> UnlinkChat(int id)
         {
-            var result = await _service.UnlinkChatAsync(id);
-            if (!result)
-                return NotFound(new { message = "المباراة غير موجودة." });
-
-            return Ok(new { message = "تم فك ربط المحادثة." });
+            var response = await _service.UnlinkChatAsync(id);
+            return this.ToActionResult(response);
         }
     }
 }

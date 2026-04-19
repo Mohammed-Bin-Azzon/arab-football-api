@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Comments.CommentsDto;
+using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,31 +19,22 @@ namespace ArabFootball.Api.Controllers
             _commentsService = commentsService;
         }
 
-        
         [HttpPost]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
-            try
-            {
-                var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-                var result = await _commentsService.AddCommentAsync(fanId, dto);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات التعليق غير صالحة.");
+
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _commentsService.AddCommentAsync(fanId, dto);
+            return this.ToActionResult(response);
         }
 
-        [HttpGet("post/{postId}")]
+        [HttpGet("post/{postId:int}")]
         public async Task<IActionResult> GetPostComments(int postId)
         {
-            var comments = await _commentsService.GetPostCommentsAsync(postId);
-            return Ok(comments);
+            var response = await _commentsService.GetPostCommentsAsync(postId);
+            return this.ToActionResult(response);
         }
     }
 }

@@ -1,11 +1,12 @@
 ﻿using ArabFootball.Api.Features.Posts.Dtos;
+using ArabFootball.Shared.Helpers;
 
 namespace ArabFootball.Api.Features.Posts.Services
 {
     public interface IPostsService
     {
-        Task<PostDto> CreatePostAsync(int fanId, CreatePostDto dto);
-        Task<List<PostDto>> GetHomeFeedAsync();
-        Task<bool> DeletePostAsync(int postId, int fanId);
+        Task<ApiResponse<PostDto>> CreatePostAsync(int fanId, CreatePostDto dto);
+        Task<ApiResponse<List<PostDto>>> GetHomeFeedAsync();
+        Task<ApiResponse<object>> DeletePostAsync(int postId, int fanId);
     }
 }

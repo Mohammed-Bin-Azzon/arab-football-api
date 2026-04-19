@@ -1,9 +1,8 @@
-﻿using ArabFootball.Api.Features.Enums;
-using ArabFootball.Api.Features.Matchs;
+﻿using System.Net;
+using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Features.Matchs.MatchDto;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
-using ArabFootball.Api.Shared.Helpers;
 using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,186 +17,346 @@ namespace ArabFootball.Api.Features.Matchs
             _context = context;
         }
 
-        public async Task<PaginatedResult<MatchDetailsDto>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
+        public async Task<ApiResponse<PaginatedResult<MatchDetailsDto>>> GetAllMatchesAsync(
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? search = null)
         {
-            if (pageNumber < 1) pageNumber = 1;
-            if (pageSize < 1) pageSize = 10;
-
-            var query = _context.Matches.AsNoTracking().AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(search))
+            try
             {
-                search = search.Trim();
-                query = query.Where(m =>
-                    EF.Functions.Like(m.HomeTeam, $"%{search}%") ||
-                    EF.Functions.Like(m.AwayTeam, $"%{search}%") ||
-                    EF.Functions.Like(m.League, $"%{search}%"));
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageSize < 1) pageSize = 10;
+
+                var query = _context.Matches.AsNoTracking().AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    search = search.Trim();
+                    query = query.Where(m =>
+                        EF.Functions.Like(m.HomeTeam, $"%{search}%") ||
+                        EF.Functions.Like(m.AwayTeam, $"%{search}%") ||
+                        EF.Functions.Like(m.League, $"%{search}%"));
+                }
+
+                var totalCount = await query.CountAsync();
+
+                var matches = await query
+                    .OrderByDescending(m => m.StartTime)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(m => new MatchDetailsDto
+                    {
+                        Id = m.Id,
+                        HomeTeam = m.HomeTeam,
+                        AwayTeam = m.AwayTeam,
+                        League = m.League,
+                        StartTime = m.StartTime,
+                        Status = m.Status,
+                        PredictionState = m.PredictionState,
+                        ChatUrl = m.ChatUrl,
+                        StatsJson = m.StatsJson
+                    })
+                    .ToListAsync();
+
+                var result = PaginatedResult<MatchDetailsDto>.Success(matches, totalCount, pageNumber, pageSize);
+
+                return ApiResponse<PaginatedResult<MatchDetailsDto>>.Success(
+                    result,
+                    "تم جلب المباريات بنجاح.");
             }
+            catch (Exception)
+            {
+                return ApiResponse<PaginatedResult<MatchDetailsDto>>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء جلب المباريات.");
+            }
+        }
 
-            var totalCount = await query.CountAsync();
+        public async Task<ApiResponse<MatchDetailsDto>> GetMatchByIdAsync(int matchId)
+        {
+            try
+            {
+                var match = await _context.Matches
+                    .AsNoTracking()
+                    .Where(m => m.Id == matchId)
+                    .Select(m => new MatchDetailsDto
+                    {
+                        Id = m.Id,
+                        HomeTeam = m.HomeTeam,
+                        AwayTeam = m.AwayTeam,
+                        League = m.League,
+                        StartTime = m.StartTime,
+                        Status = m.Status,
+                        PredictionState = m.PredictionState,
+                        ChatUrl = m.ChatUrl,
+                        StatsJson = m.StatsJson
+                    })
+                    .FirstOrDefaultAsync();
 
-            var matches = await query
-                .OrderByDescending(m => m.StartTime)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(m => new MatchDetailsDto
+                if (match == null)
                 {
-                    Id = m.Id,
-                    HomeTeam = m.HomeTeam,
-                    AwayTeam = m.AwayTeam,
-                    League = m.League,
-                    StartTime = m.StartTime,
-                    Status = m.Status,
-                    PredictionState = m.PredictionState,
-                    ChatUrl = m.ChatUrl,
-                    StatsJson = m.StatsJson
-                })
-                .ToListAsync();
+                    return ApiResponse<MatchDetailsDto>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            return PaginatedResult<MatchDetailsDto>.Success(matches, totalCount, pageNumber, pageSize);
+                return ApiResponse<MatchDetailsDto>.Success(
+                    match,
+                    "تم جلب المباراة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<MatchDetailsDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء جلب المباراة.");
+            }
         }
 
-        public async Task<MatchDetailsDto?> GetMatchByIdAsync(int matchId)
+        public async Task<ApiResponse<MatchDetailsDto>> CreateMatchAsync(CreateMatchDto dto, int adminId)
         {
-            return await _context.Matches
-                .AsNoTracking()
-                .Where(m => m.Id == matchId)
-                .Select(m => new MatchDetailsDto
+            try
+            {
+                var adminExists = await _context.Admins.AnyAsync(a => a.Id == adminId);
+                if (!adminExists)
                 {
-                    Id = m.Id,
-                    HomeTeam = m.HomeTeam,
-                    AwayTeam = m.AwayTeam,
-                    League = m.League,
-                    StartTime = m.StartTime,
-                    Status = m.Status,
-                    PredictionState = m.PredictionState,
-                    ChatUrl = m.ChatUrl,
-                    StatsJson = m.StatsJson
-                })
-                .FirstOrDefaultAsync();
-        }
+                    return ApiResponse<MatchDetailsDto>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "المشرف غير موجود.");
+                }
 
-        public async Task<MatchDetailsDto> CreateMatchAsync(CreateMatchDto dto, int adminId)
-        {
-            var adminExists = await _context.Admins.AnyAsync(a => a.Id == adminId);
-            if (!adminExists)
-                throw new InvalidOperationException("المشرف غير موجود.");
+                var match = new Match
+                {
+                    AdminId = adminId,
+                    HomeTeam = dto.HomeTeam.Trim(),
+                    AwayTeam = dto.AwayTeam.Trim(),
+                    League = dto.League.Trim(),
+                    StartTime = dto.StartTime.ToUniversalTime(),
+                    StatsJson = dto.StatsJson,
+                    Status = MatchStatus.Upcoming,
+                    PredictionState = PredictionState.Open
+                };
 
-            var match = new Match
+                await _context.Matches.AddAsync(match);
+                await _context.SaveChangesAsync();
+
+                var result = new MatchDetailsDto
+                {
+                    Id = match.Id,
+                    HomeTeam = match.HomeTeam,
+                    AwayTeam = match.AwayTeam,
+                    League = match.League,
+                    StartTime = match.StartTime,
+                    Status = match.Status,
+                    PredictionState = match.PredictionState,
+                    ChatUrl = match.ChatUrl,
+                    StatsJson = match.StatsJson
+                };
+
+                return ApiResponse<MatchDetailsDto>.Success(
+                    result,
+                    "تم إنشاء المباراة بنجاح.");
+            }
+            catch (Exception)
             {
-                AdminId = adminId,
-                HomeTeam = dto.HomeTeam.Trim(),
-                AwayTeam = dto.AwayTeam.Trim(),
-                League = dto.League.Trim(),
-                StartTime = dto.StartTime.ToUniversalTime(),
-                StatsJson = dto.StatsJson,
-                Status = MatchStatus.Upcoming,
-                PredictionState = PredictionState.Open
-            };
+                return ApiResponse<MatchDetailsDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء إنشاء المباراة.");
+            }
+        }
 
-            await _context.Matches.AddAsync(match);
-            await _context.SaveChangesAsync();
-
-            return new MatchDetailsDto
+        public async Task<ApiResponse<MatchDetailsDto>> UpdateMatchAsync(int matchId, UpdateMatchDto dto)
+        {
+            try
             {
-                Id = match.Id,
-                HomeTeam = match.HomeTeam,
-                AwayTeam = match.AwayTeam,
-                League = match.League,
-                StartTime = dto.StartTime.ToUniversalTime(),
-                Status = match.Status,
-                PredictionState = match.PredictionState,
-                ChatUrl = match.ChatUrl,
-                StatsJson = match.StatsJson
-            };
-        }
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<MatchDetailsDto>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-        public async Task<MatchDetailsDto> UpdateMatchAsync(int matchId, UpdateMatchDto dto)
-        {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null)
-                throw new KeyNotFoundException("المباراة غير موجودة.");
+                match.HomeTeam = dto.HomeTeam.Trim();
+                match.AwayTeam = dto.AwayTeam.Trim();
+                match.League = dto.League.Trim();
+                match.StartTime = dto.StartTime.ToUniversalTime();
+                match.StatsJson = dto.StatsJson;
 
-            match.HomeTeam = dto.HomeTeam.Trim();
-            match.AwayTeam = dto.AwayTeam.Trim();
-            match.League = dto.League.Trim();
-            match.StartTime = dto.StartTime.ToUniversalTime();
-            match.StatsJson = dto.StatsJson;
+                await _context.SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
+                var result = new MatchDetailsDto
+                {
+                    Id = match.Id,
+                    HomeTeam = match.HomeTeam,
+                    AwayTeam = match.AwayTeam,
+                    League = match.League,
+                    StartTime = match.StartTime,
+                    Status = match.Status,
+                    PredictionState = match.PredictionState,
+                    ChatUrl = match.ChatUrl,
+                    StatsJson = match.StatsJson
+                };
 
-            return new MatchDetailsDto
+                return ApiResponse<MatchDetailsDto>.Success(
+                    result,
+                    "تم تحديث المباراة بنجاح.");
+            }
+            catch (Exception)
             {
-                Id = match.Id,
-                HomeTeam = match.HomeTeam,
-                AwayTeam = match.AwayTeam,
-                League = match.League,
-                StartTime = dto.StartTime.ToUniversalTime(),
-                Status = match.Status,
-                PredictionState = match.PredictionState,
-                ChatUrl = match.ChatUrl,
-                StatsJson = match.StatsJson
-            };
+                return ApiResponse<MatchDetailsDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء تحديث المباراة.");
+            }
         }
 
-        public async Task<bool> DeleteMatchAsync(int matchId)
+        public async Task<ApiResponse<object>> DeleteMatchAsync(int matchId)
         {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null) return false;
+            try
+            {
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            _context.Matches.Remove(match);
-            await _context.SaveChangesAsync();
-            return true;
+                _context.Matches.Remove(match);
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<object>.Success(null, "تم حذف المباراة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء حذف المباراة.");
+            }
         }
 
-        public async Task<bool> ChangeStatusAsync(int matchId, MatchStatus status)
+        public async Task<ApiResponse<object>> ChangeStatusAsync(int matchId, MatchStatus status)
         {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null) return false;
+            try
+            {
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            match.Status = status;
-            await _context.SaveChangesAsync();
-            return true;
+                match.Status = status;
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<object>.Success(null, "تم تحديث حالة المباراة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء تحديث حالة المباراة.");
+            }
         }
 
-        public async Task<bool> OpenPredictionsAsync(int matchId)
+        public async Task<ApiResponse<object>> OpenPredictionsAsync(int matchId)
         {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null) return false;
+            try
+            {
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            match.PredictionState = PredictionState.Open;
-            await _context.SaveChangesAsync();
-            return true;
+                match.PredictionState = PredictionState.Open;
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<object>.Success(null, "تم فتح التوقعات بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء فتح التوقعات.");
+            }
         }
 
-        public async Task<bool> ClosePredictionsAsync(int matchId)
+        public async Task<ApiResponse<object>> ClosePredictionsAsync(int matchId)
         {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null) return false;
+            try
+            {
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            match.PredictionState = PredictionState.Closed;
-            await _context.SaveChangesAsync();
-            return true;
+                match.PredictionState = PredictionState.Closed;
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<object>.Success(null, "تم إغلاق التوقعات بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء إغلاق التوقعات.");
+            }
         }
 
-        public async Task<bool> LinkChatAsync(int matchId, string chatUrl)
+        public async Task<ApiResponse<object>> LinkChatAsync(int matchId, string chatUrl)
         {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null) return false;
+            try
+            {
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            match.ChatUrl = chatUrl;
-            await _context.SaveChangesAsync();
-            return true;
+                match.ChatUrl = chatUrl;
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<object>.Success(null, "تم ربط المحادثة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء ربط المحادثة.");
+            }
         }
 
-        public async Task<bool> UnlinkChatAsync(int matchId)
+        public async Task<ApiResponse<object>> UnlinkChatAsync(int matchId)
         {
-            var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
-            if (match == null) return false;
+            try
+            {
+                var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+                if (match == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
 
-            match.ChatUrl = null;
-            await _context.SaveChangesAsync();
-            return true;
+                match.ChatUrl = null;
+                await _context.SaveChangesAsync();
+
+                return ApiResponse<object>.Success(null, "تم فك ربط المحادثة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء فك ربط المحادثة.");
+            }
         }
     }
 }

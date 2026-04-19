@@ -6,16 +6,16 @@ namespace ArabFootball.Api.Features.Matchs
 {
     public interface IMatchService
     {
-        Task<PaginatedResult<MatchDetailsDto>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null);
-        Task<MatchDetailsDto?> GetMatchByIdAsync(int matchId);
-        Task<MatchDetailsDto> CreateMatchAsync(CreateMatchDto dto, int adminId);
-        Task<MatchDetailsDto> UpdateMatchAsync(int matchId, UpdateMatchDto dto);
+        Task<ApiResponse<PaginatedResult<MatchDetailsDto>>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null);
+        Task<ApiResponse<MatchDetailsDto>> GetMatchByIdAsync(int matchId);
+        Task<ApiResponse<MatchDetailsDto>> CreateMatchAsync(CreateMatchDto dto, int adminId);
+        Task<ApiResponse<MatchDetailsDto>> UpdateMatchAsync(int matchId, UpdateMatchDto dto);
 
-        Task<bool> DeleteMatchAsync(int matchId);
-        Task<bool> ChangeStatusAsync(int matchId, MatchStatus status);
-        Task<bool> OpenPredictionsAsync(int matchId);
-        Task<bool> ClosePredictionsAsync(int matchId);
-        Task<bool> LinkChatAsync(int matchId, string chatUrl);
-        Task<bool> UnlinkChatAsync(int matchId);
+        Task<ApiResponse<object>> DeleteMatchAsync(int matchId);
+        Task<ApiResponse<object>> ChangeStatusAsync(int matchId, MatchStatus status);
+        Task<ApiResponse<object>> OpenPredictionsAsync(int matchId);
+        Task<ApiResponse<object>> ClosePredictionsAsync(int matchId);
+        Task<ApiResponse<object>> LinkChatAsync(int matchId, string chatUrl);
+        Task<ApiResponse<object>> UnlinkChatAsync(int matchId);
     }
 }

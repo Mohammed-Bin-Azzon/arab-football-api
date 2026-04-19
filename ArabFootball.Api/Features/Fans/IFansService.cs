@@ -1,15 +1,16 @@
 ﻿using ArabFootball.Api.Features.Fans.Dtos;
+using ArabFootball.Shared.Helpers;
 
 namespace ArabFootball.Api.Features.Fans
 {
     public interface IFansService
     {
-        Task<FanProfileDto?> GetProfileAsync(int fanId);
-        Task<FanProfileDto> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto);
-        Task<List<FanProfileDto>> SearchFansAsync(string query);
+        Task<ApiResponse<FanProfileDto>> GetProfileAsync(int fanId);
+        Task<ApiResponse<FanProfileDto>> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto);
+        Task<ApiResponse<List<FanProfileDto>>> SearchFansAsync(string query);
 
-        Task FollowFanAsync(int followerId, int followedFanId);
-        Task UnfollowFanAsync(int followerId, int followedFanId);
-        Task<bool> IsFollowingAsync(int followerId, int followedFanId);
+        Task<ApiResponse<object>> FollowFanAsync(int followerId, int followedFanId);
+        Task<ApiResponse<object>> UnfollowFanAsync(int followerId, int followedFanId);
+        Task<ApiResponse<bool>> IsFollowingAsync(int followerId, int followedFanId);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using ArabFootball.Api.Features.Auth;
 using ArabFootball.Api.Features.Auth.AuthDto;
+using ArabFootball.Api.Shared.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArabFootball.Api.Controllers
@@ -15,32 +17,34 @@ namespace ArabFootball.Api.Controllers
             _authService = authService;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            try
-            {
-                var result = await _authService.RegisterAsync(dto);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات التسجيل غير صالحة.");
+
+            var response = await _authService.RegisterAsync(dto);
+            return this.ToActionResult(response);
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            try
-            {
-                var result = await _authService.LoginAsync(dto);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات تسجيل الدخول غير صالحة.");
+
+            var response = await _authService.LoginAsync(dto);
+            return this.ToActionResult(response);
+        }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var response = await _authService.LogoutAsync();
+            return this.ToActionResult(response);
         }
     }
 }

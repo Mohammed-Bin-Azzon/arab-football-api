@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Features.Posts.Services;
+using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,41 +19,30 @@ namespace ArabFootball.Api.Controllers
             _postsService = postsService;
         }
 
-        
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] CreatePostDto dto)
         {
-            try
-            {
-                var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-                var post = await _postsService.CreatePostAsync(fanId, dto);
-                return Ok(post);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات المنشور غير صالحة.");
+
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _postsService.CreatePostAsync(fanId, dto);
+            return this.ToActionResult(response);
         }
 
-        
         [HttpGet("feed")]
         public async Task<IActionResult> GetFeed()
         {
-            var posts = await _postsService.GetHomeFeedAsync();
-            return Ok(posts);
+            var response = await _postsService.GetHomeFeedAsync();
+            return this.ToActionResult(response);
         }
 
-        
-        [HttpDelete("{postId}")]
+        [HttpDelete("{postId:int}")]
         public async Task<IActionResult> Delete(int postId)
         {
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-
-            var result = await _postsService.DeletePostAsync(postId, fanId);
-            if (!result)
-                return NotFound(new { message = "المنشور غير موجود أو لا تملك صلاحية حذفه." });
-
-            return Ok(new { message = "تم الحذف بنجاح." });
+            var response = await _postsService.DeletePostAsync(postId, fanId);
+            return this.ToActionResult(response);
         }
     }
 }
