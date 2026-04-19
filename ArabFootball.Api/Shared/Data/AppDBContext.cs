@@ -5,7 +5,6 @@ namespace ArabFootball.Api.Shared.Data
 {
     public class AppDBContext : DbContext
     {
-<<<<<<< HEAD
         public AppDBContext(DbContextOptions<AppDBContext> options) : base(options)
         {
         }
@@ -21,29 +20,11 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
         public DbSet<Prediction> Predictions => Set<Prediction>();
-=======
-        public DbSet<User> Users { get; set; }
-        public DbSet<Fan> Fans { get; set; }
-        public DbSet<Admin> Admins { get; set; }
-        public DbSet<Follow> Follows { get; set; }
-        public DbSet<Match> Matches { get; set; }
-        public DbSet<Chat> Chats { get; set; }
-        public DbSet<ChatMember> ChatMembers { get; set; }
-        public DbSet<Post> Posts { get; set; }
-        public DbSet<Like> Likes { get; set; }
-        public DbSet<Comment> Comments { get; set; }
-        public DbSet<Bookmark> Bookmarks { get; set; }
-        public DbSet<Prediction> Predictions { get; set; }
-
-
-
->>>>>>> feature/chatMember
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-<<<<<<< HEAD
             // =========================
             // Inheritance: User / Fan / Admin
             // =========================
@@ -71,17 +52,17 @@ namespace ArabFootball.Api.Shared.Data
                     .HasMaxLength(500);
             });
 
-            // =========================
-            // Follow
-            // =========================
-=======
             //يمنع تكرار نفس المستخدم في نفس الشات
             modelBuilder.Entity<ChatMember>()
                 .HasIndex(x => new { x.ChatId, x.FanId })
                 .IsUnique();
 
 
->>>>>>> feature/chatMember
+
+            // =========================
+            // Follow
+            // =========================
+
             modelBuilder.Entity<Follow>(entity =>
             {
                 entity.HasKey(f => new { f.FollowerId, f.FollowedFanId });
