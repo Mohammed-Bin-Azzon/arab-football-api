@@ -1,18 +1,17 @@
 ﻿using ArabFootball.Api.Features.Enums;
-using ArabFootball.Api.Features.Matchs.MatchDto;
 using ArabFootball.Api.Features.Matchs;
+using ArabFootball.Api.Features.Matchs.MatchDto;
+using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using api_training.Controllers;
-using ArabFootball.Api.Shared.Entity;
-using static ArabFootball.Shared.Helpers.Routing;
+using System.Security.Claims;
 
 namespace ArabFootball.Api.Controllers
 {
-    [Route(Matches.Prefix)]
-    [Authorize(Roles = "Admin")]
-    public class MatchController : AppControllerBase
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class MatchController : ControllerBase
     {
         private readonly IMatchService _service;
 
@@ -21,67 +20,89 @@ namespace ArabFootball.Api.Controllers
             _service = service;
         }
 
-        
-        [HttpGet(Matches.GetAll)]
+        [HttpGet]
         public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            return  Response(await _service.GetAllMatchesAsync(pageNumber, pageSize, search));
+            var response = await _service.GetAllMatchesAsync(pageNumber, pageSize, search);
+            return this.ToActionResult(response);
         }
 
-        [HttpGet(Matches.GetById)]
-        public async Task<IActionResult> GetById([FromRoute]int id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById(int id)
         {
-            return Response(await _service.GetMatchByIdAsync(id));
+            var response = await _service.GetMatchByIdAsync(id);
+            return this.ToActionResult(response);
         }
 
-        [HttpPut(Matches.Add)]
-        public async Task<IActionResult> Create([FromBody]CreateMatchDto dto)
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateMatchDto dto)
         {
-            int adminId = int.Parse(User.FindFirst("UserId").Value);
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات المباراة غير صالحة.");
 
-            return Response(await _service.CreateMatchAsync(dto, adminId));
+            int adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _service.CreateMatchAsync(dto, adminId);
+            return this.ToActionResult(response);
         }
 
-        [HttpPut(Matches.Update)]
-        public async Task<IActionResult> Update([FromRoute]int id, [FromBody]UpdateMatchDto dto)
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateMatchDto dto)
         {
-            return Response(await _service.UpdateMatchAsync(id, dto));
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات تحديث المباراة غير صالحة.");
+
+            var response = await _service.UpdateMatchAsync(id, dto);
+            return this.ToActionResult(response);
         }
 
-        [HttpDelete(Matches.Delete)]
-        public async Task<IActionResult> Delete([FromRoute]int id)
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
         {
-           return Response(await _service.DeleteMatchAsync(id));
+            var response = await _service.DeleteMatchAsync(id);
+            return this.ToActionResult(response);
         }
 
-        [HttpPatch(Matches.ChangeStatus)]
-        public async Task<IActionResult> ChangeStatus([FromRoute] int id, [FromBody]MatchStatus status)
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/status")]
+        public async Task<IActionResult> ChangeStatus(int id, [FromBody] MatchStatus status)
         {
-            return Response(await _service.ChangeStatusAsync(id, status));
+            var response = await _service.ChangeStatusAsync(id, status);
+            return this.ToActionResult(response);
         }
 
-        [HttpPatch(Matches.OpenPredictions)]
-        public async Task<IActionResult> OpenPredictions([FromRoute]int id)
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/predictions/open")]
+        public async Task<IActionResult> OpenPredictions(int id)
         {
-            return Response(await _service.OpenPredictionsAsync(id));
+            var response = await _service.OpenPredictionsAsync(id);
+            return this.ToActionResult(response);
         }
 
-        [HttpPatch(Matches.ClosePredictions)]
-        public async Task<IActionResult> ClosePredictions([FromRoute]int id)
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/predictions/close")]
+        public async Task<IActionResult> ClosePredictions(int id)
         {
-            return Response(await _service.ClosePredictionsAsync(id));
+            var response = await _service.ClosePredictionsAsync(id);
+            return this.ToActionResult(response);
         }
 
-        [HttpPatch(Matches.LinkChat)]
-        public async Task<IActionResult> LinkChat([FromRoute]int id, [FromBody] string chatUrl)
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/chat/link")]
+        public async Task<IActionResult> LinkChat(int id, [FromBody] string chatUrl)
         {
-            return Response(await _service.LinkChatAsync(id, chatUrl));
+            var response = await _service.LinkChatAsync(id, chatUrl);
+            return this.ToActionResult(response);
         }
 
-        [HttpPatch(Matches.UnlinkChat)]
-        public async Task<IActionResult> UnlinkChat([FromRoute] int id)
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/chat/unlink")]
+        public async Task<IActionResult> UnlinkChat(int id)
         {
-            return Response(await (_service.UnlinkChatAsync(id)));
+            var response = await _service.UnlinkChatAsync(id);
+            return this.ToActionResult(response);
         }
     }
 }

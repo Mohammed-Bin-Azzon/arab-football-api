@@ -1,38 +1,48 @@
-﻿using ArabFootball.Api.Features.Posts.Dtos;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Features.Posts.Services;
+using ArabFootball.Api.Shared.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-[Route("api/[controller]")]
-[ApiController]
-public class PostsController : ControllerBase
+namespace ArabFootball.Api.Controllers
 {
-    private readonly IPostsService _postsService;
-
-    public PostsController(IPostsService postsService)
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class PostsController : ControllerBase
     {
-        _postsService = postsService;
-    }
+        private readonly IPostsService _postsService;
 
-    
-    [HttpPost("create/{fanId}")]
-    public async Task<IActionResult> Create(int fanId, [FromForm] CreatePostDto dto)
-    {
-        var result = await _postsService.CreatePostAsync(fanId, dto);
-        return result ? Ok(new { message = "تم النشر بنجاح" }) : BadRequest("خطأ في النشر");
-    }
+        public PostsController(IPostsService postsService)
+        {
+            _postsService = postsService;
+        }
 
-    [HttpGet("feed/{fanId}")]
-    public async Task<IActionResult> GetFeed(int fanId)
-    {
-        var posts = await _postsService.GetHomeFeedAsync(fanId);
-        return Ok(posts);
-    }
+        [HttpPost]
+        public async Task<IActionResult> Create([FromForm] CreatePostDto dto)
+        {
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات المنشور غير صالحة.");
 
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _postsService.CreatePostAsync(fanId, dto);
+            return this.ToActionResult(response);
+        }
 
-    [HttpDelete("{postId}/{fanId}")]
-    public async Task<IActionResult> Delete(int postId, int fanId)
-    {
-        var result = await _postsService.DeletePostAsync(postId, fanId);
-        return result ? Ok(new { message = "تم الحذف" }) : NotFound();
+        [HttpGet("feed")]
+        public async Task<IActionResult> GetFeed()
+        {
+            var response = await _postsService.GetHomeFeedAsync();
+            return this.ToActionResult(response);
+        }
+
+        [HttpDelete("{postId:int}")]
+        public async Task<IActionResult> Delete(int postId)
+        {
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _postsService.DeletePostAsync(postId, fanId);
+            return this.ToActionResult(response);
+        }
     }
 }

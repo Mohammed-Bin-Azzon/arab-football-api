@@ -1,10 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Fans;
 using ArabFootball.Api.Features.Fans.Dtos;
+using ArabFootball.Api.Shared.Helpers;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace ArabFootball.Api.Features.Fans
+namespace ArabFootball.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] 
+    [Route("api/[controller]")]
+    [Authorize]
     public class FansController : ControllerBase
     {
         private readonly IFansService _fansService;
@@ -14,74 +19,53 @@ namespace ArabFootball.Api.Features.Fans
             _fansService = fansService;
         }
 
-
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetProfile(int id)
         {
-            var profile = await _fansService.GetProfileAsync(id);
-
-            if (profile == null)
-            {
-                return NotFound(new { message = "المشجع غير موجود" });
-            }
-
-            return Ok(profile);
+            var response = await _fansService.GetProfileAsync(id);
+            return this.ToActionResult(response);
         }
 
-
-        [HttpPatch("{id}")]
-        public async Task<IActionResult> UpdateProfile(int id, [FromForm] UpdateFanProfileDto dto)
+        [HttpPatch("me")]
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateFanProfileDto dto)
         {
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات الملف الشخصي غير صالحة.");
 
-            var result = await _fansService.UpdateProfileAsync(id, dto);
-
-            if (!result)
-            {
-                return BadRequest(new { message = "فشل تحديث البيانات، تأكد من صحة المعرف" });
-            }
-
-            return Ok(new { message = "تم تحديث الملف الشخصي بنجاح" });
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _fansService.UpdateProfileAsync(fanId, dto);
+            return this.ToActionResult(response);
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string query)
         {
-            var results = await _fansService.SearchFansAsync(query);
-            return Ok(results);
+            var response = await _fansService.SearchFansAsync(query);
+            return this.ToActionResult(response);
         }
 
-
-        // POST: api/fans/{targetId}/follow?observerId=1
-        [HttpPost("{targetId}/follow")]
-        public async Task<IActionResult> Follow(int targetId, [FromQuery] int observerId)
+        [HttpPost("{targetId:int}/follow")]
+        public async Task<IActionResult> Follow(int targetId)
         {
-
-            var result = await _fansService.FollowFanAsync(observerId, targetId);
-
-            if (!result)
-                return BadRequest("لا يمكن إتمام المتابعة (تأكد من المعرفات أو أنك تتابعه بالفعل)");
-
-            return Ok(new { message = "تمت المتابعة بنجاح" });
+            var followerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _fansService.FollowFanAsync(followerId, targetId);
+            return this.ToActionResult(response);
         }
 
-
-        [HttpDelete("{targetId}/unfollow")]
-        public async Task<IActionResult> Unfollow(int targetId, [FromQuery] int observerId)
+        [HttpDelete("{targetId:int}/unfollow")]
+        public async Task<IActionResult> Unfollow(int targetId)
         {
-            var result = await _fansService.UnfollowFanAsync(observerId, targetId);
-
-            if (!result)
-                return BadRequest("أنت لا تتابع هذا المستخدم");
-
-            return Ok(new { message = "تم إلغاء المتابعة" });
+            var followerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _fansService.UnfollowFanAsync(followerId, targetId);
+            return this.ToActionResult(response);
         }
 
-
-        [HttpGet("{targetId}/is-following")]
-        public async Task<IActionResult> CheckIsFollowing(int targetId, [FromQuery] int observerId)
+        [HttpGet("{targetId:int}/is-following")]
+        public async Task<IActionResult> CheckIsFollowing(int targetId)
         {
-            var isFollowing = await _fansService.IsFollowingAsync(observerId, targetId);
-            return Ok(new { isFollowing });
+            var followerId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _fansService.IsFollowingAsync(followerId, targetId);
+            return this.ToActionResult(response);
         }
     }
 }

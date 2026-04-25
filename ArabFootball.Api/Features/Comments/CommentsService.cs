@@ -1,6 +1,8 @@
-﻿using ArabFootball.Api.Features.Comments.CommentsDto;
+﻿using System.Net;
+using ArabFootball.Api.Features.Comments.CommentsDto;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
+using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArabFootball.Api.Features.Comments
@@ -14,55 +16,127 @@ namespace ArabFootball.Api.Features.Comments
             _context = context;
         }
 
-        public async Task<CommentDto?> AddCommentAsync(CreateCommentDto dto)
+        public async Task<ApiResponse<CommentDto>> AddCommentAsync(int fanId, CreateCommentDto dto)
         {
-            var post = await _context.Posts.FindAsync(dto.PostId);
-            if (post == null) return null;
-
-            var comment = new Comment
+            try
             {
-                Content = dto.Content,
-                PostId = dto.PostId,
-                FanId = dto.FanId,
-                CreatedAt = DateTime.UtcNow
-            };
+                var content = dto.Content?.Trim();
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    return ApiResponse<CommentDto>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "محتوى التعليق مطلوب.");
+                }
 
-            await _context.Comments.AddAsync(comment);
+                var fan = await _context.Fans
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(f => f.Id == fanId);
 
-            
-            post.CommentCount++;
+                if (fan == null)
+                {
+                    return ApiResponse<CommentDto>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المستخدم غير موجود.");
+                }
 
-            await _context.SaveChangesAsync();
+                var post = await _context.Posts
+                    .FirstOrDefaultAsync(p => p.Id == dto.PostId);
 
-            
-            var fan = await _context.Fans.FindAsync(dto.FanId);
+                if (post == null)
+                {
+                    return ApiResponse<CommentDto>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المنشور غير موجود.");
+                }
 
-            return new CommentDto
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+
+                var comment = new Comment
+                {
+                    Content = content,
+                    PostId = dto.PostId,
+                    FanId = fanId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.Comments.AddAsync(comment);
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+
+                    var actualCommentCount = await _context.Comments.CountAsync(c => c.PostId == dto.PostId);
+                    post.CommentCount = actualCommentCount;
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    var result = new CommentDto
+                    {
+                        Id = comment.Id,
+                        Content = comment.Content,
+                        CreatedAt = comment.CreatedAt,
+                        FanId = fan.Id,
+                        FanName = string.IsNullOrWhiteSpace(fan.DisplayName) ? fan.Username : fan.DisplayName,
+                        FanProfilePic = fan.ProfilePicUrl
+                    };
+
+                    return ApiResponse<CommentDto>.Success(result, "تمت إضافة التعليق بنجاح.");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<CommentDto>.Fail(
+                        HttpStatusCode.InternalServerError,
+                        "حدث خطأ أثناء إضافة التعليق.");
+                }
+            }
+            catch (Exception)
             {
-                Id = comment.Id,
-                Content = comment.Content,
-                CreatedAt = comment.CreatedAt,
-                FanId = fan.Id,
-                FanName = fan.DisplayName ?? fan.Username,
-                FanProfilePic = fan.ProfilePicUrl
-            };
+                return ApiResponse<CommentDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ غير متوقع أثناء إضافة التعليق.");
+            }
         }
 
-        public async Task<List<CommentDto>> GetPostCommentsAsync(int postId)
+        public async Task<ApiResponse<List<CommentDto>>> GetPostCommentsAsync(int postId)
         {
-            return await _context.Comments
-                .Include(c => c.Fan)
-                .Where(c => c.PostId == postId)
-                .OrderByDescending(c => c.CreatedAt) 
-                .Select(c => new CommentDto
+            try
+            {
+                var postExists = await _context.Posts
+                    .AsNoTracking()
+                    .AnyAsync(p => p.Id == postId);
+
+                if (!postExists)
                 {
-                    Id = c.Id,
-                    Content = c.Content,
-                    CreatedAt = c.CreatedAt,
-                    FanId = c.FanId,
-                    FanName = c.Fan.DisplayName ?? c.Fan.Username,
-                    FanProfilePic = c.Fan.ProfilePicUrl
-                }).ToListAsync();
+                    return ApiResponse<List<CommentDto>>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المنشور غير موجود.");
+                }
+
+                var comments = await _context.Comments
+                    .AsNoTracking()
+                    .Where(c => c.PostId == postId)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Select(c => new CommentDto
+                    {
+                        Id = c.Id,
+                        Content = c.Content,
+                        CreatedAt = c.CreatedAt,
+                        FanId = c.FanId,
+                        FanName = string.IsNullOrWhiteSpace(c.Fan.DisplayName) ? c.Fan.Username : c.Fan.DisplayName,
+                        FanProfilePic = c.Fan.ProfilePicUrl
+                    })
+                    .ToListAsync();
+
+                return ApiResponse<List<CommentDto>>.Success(comments, "تم جلب التعليقات بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<List<CommentDto>>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء جلب التعليقات.");
+            }
         }
     }
 }

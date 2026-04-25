@@ -1,10 +1,14 @@
-﻿using ArabFootball.Api.Features.Bookmarks;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Bookmarks;
+using ArabFootball.Api.Shared.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class BookmarksController : ControllerBase
     {
         private readonly IBookmarksService _bookmarksService;
@@ -14,17 +18,12 @@ namespace ArabFootball.Api.Controllers
             _bookmarksService = bookmarksService;
         }
 
-        [HttpPost("toggle/{postId}/{fanId}")]
-        public async Task<IActionResult> ToggleBookmark(int postId, int fanId)
+        [HttpPost("toggle/{postId:int}")]
+        public async Task<IActionResult> ToggleBookmark(int postId)
         {
-            var result = await _bookmarksService.ToggleBookmarkAsync(postId, fanId);
-
-            if (result == null)
-            {
-                return NotFound(new { message = "المنشور غير موجود" });
-            }
-
-            return Ok(result);
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _bookmarksService.ToggleBookmarkAsync(postId, fanId);
+            return this.ToActionResult(response);
         }
     }
 }

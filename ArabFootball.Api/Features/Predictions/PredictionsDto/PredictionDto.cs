@@ -8,5 +8,6 @@
         public int PredictedAwayScore { get; set; }
         public bool IsProcessed { get; set; }
         public int PointsEarned { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

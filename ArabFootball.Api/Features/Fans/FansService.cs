@@ -1,8 +1,10 @@
-﻿using ArabFootball.Api.Features.Fans.Dtos;
+﻿using System.Net;
+using ArabFootball.Api.Features.Fans.Dtos;
 using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Api.Shared.Helpers;
+using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace ArabFootball.Api.Features.Fans
@@ -18,139 +20,307 @@ namespace ArabFootball.Api.Features.Fans
             _fileService = fileService;
         }
 
-
-        public async Task<FanProfileDto?> GetProfileAsync(int fanId)
+        public async Task<ApiResponse<FanProfileDto>> GetProfileAsync(int fanId)
         {
-            
-            var fan = await _context.Fans
-                .Include(f => f.Posts)
-                .FirstOrDefaultAsync(f => f.Id == fanId);
-
-            if (fan == null) return null;
-
-            return new FanProfileDto
+            try
             {
-                Id = fan.Id,
-                Username = fan.Username,
-                DisplayName = fan.DisplayName,
-                Bio = fan.Bio,
-                ProfilePicUrl = fan.ProfilePicUrl,
-                FollowersCount = fan.FollowersCount,
-                FollowingCount = fan.FollowingCount,
-                Points = fan.Points,
+                var profile = await _context.Fans
+                    .AsNoTracking()
+                    .Where(f => f.Id == fanId)
+                    .Select(f => new FanProfileDto
+                    {
+                        Id = f.Id,
+                        Username = f.Username,
+                        DisplayName = f.DisplayName,
+                        Bio = f.Bio,
+                        ProfilePicUrl = f.ProfilePicUrl,
+                        FollowersCount = f.FollowersCount,
+                        FollowingCount = f.FollowingCount,
+                        Points = f.Points,
+                        Posts = f.Posts
+                            .OrderByDescending(p => p.CreatedAt)
+                            .Select(p => new PostDto
+                            {
+                                Id = p.Id,
+                                Caption = p.Caption,
+                                MediaUrl = p.MediaUrl,
+                                MediaType = p.MediaType.ToString(),
+                                CreatedAt = p.CreatedAt,
+                                LikeCount = p.LikeCount,
+                                CommentCount = p.CommentCount,
+                                BookmarkCount = p.BookmarkCount,
+                                FanId = p.FanId,
+                                FanDisplayName = f.DisplayName,
+                                FanProfilePicUrl = f.ProfilePicUrl
+                            })
+                            .ToList()
+                    })
+                    .FirstOrDefaultAsync();
 
-                Posts = fan.Posts.OrderByDescending(p => p.CreatedAt).Select(p => new PostDto
+                if (profile == null)
                 {
-                    Id = p.Id,
-                    Caption = p.Caption,
-                    MediaUrl = p.MediaUrl,
-                    MediaType = p.MediaType.ToString(),
-                    CreatedAt = p.CreatedAt,
-                    LikeCount = p.LikeCount,
-                    CommentCount = p.CommentCount,
-                }).ToList()
-            };
-        }
-
-        public async Task<bool> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
-        {
-            var fan = await _context.Fans.FindAsync(fanId);
-            if (fan == null) return false;
-
-            
-            if (dto.ProfileImage != null)
-            {
-                if (!string.IsNullOrEmpty(fan.ProfilePicUrl))
-                {
-                    _fileService.DeleteFile(fan.ProfilePicUrl, "fans");
+                    return ApiResponse<FanProfileDto>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المشجع غير موجود.");
                 }
 
-
-                string newFileName = await _fileService.SaveFileAsync(dto.ProfileImage, "fans");
-                fan.ProfilePicUrl = newFileName;
+                return ApiResponse<FanProfileDto>.Success(profile, "تم جلب الملف الشخصي بنجاح.");
             }
-
-            if (!string.IsNullOrWhiteSpace(dto.DisplayName))
-                fan.DisplayName = dto.DisplayName;
-
-            fan.Bio = dto.Bio;
-
-            _context.Fans.Update(fan);
-            return await _context.SaveChangesAsync() > 0;
-        }
-
-        public async Task<List<FanProfileDto>> SearchFansAsync(string query)
-        {
-            if (string.IsNullOrWhiteSpace(query)) return new List<FanProfileDto>();
-
-            var fans = await _context.Fans
-                .Where(f => f.DisplayName.Contains(query) || f.Username.Contains(query))
-                .AsNoTracking()
-                .ToListAsync();
-
-
-            return fans.Select(f => new FanProfileDto
+            catch (Exception)
             {
-                Id = f.Id,
-                Username = f.Username,
-                DisplayName = f.DisplayName,
-                Bio = f.Bio,
-                ProfilePicUrl = f.ProfilePicUrl,
-                FollowersCount = f.FollowersCount,
-                FollowingCount = f.FollowingCount,
-                Points = f.Points
-            }).ToList();
+                return ApiResponse<FanProfileDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء جلب الملف الشخصي.");
+            }
         }
 
-        public async Task<bool> FollowFanAsync(int observerId, int targetId)
+        public async Task<ApiResponse<FanProfileDto>> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
         {
-            
-            if (observerId == targetId) return false;
+            var oldImagePath = string.Empty;
+            string? newImagePath = null;
 
-            var existingFollow = await _context.Follows.FindAsync(observerId, targetId);
-            if (existingFollow != null) return false; 
-
-            
-            var follow = new Follow
+            try
             {
-                ObserverId = observerId,
-                TargetId = targetId
-            };
+                var fan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == fanId);
+                if (fan == null)
+                {
+                    return ApiResponse<FanProfileDto>.Fail(
+                        HttpStatusCode.NotFound,
+                        "المشجع غير موجود.");
+                }
 
-            _context.Follows.Add(follow);
+                oldImagePath = fan.ProfilePicUrl ?? string.Empty;
 
+                if (dto.ProfileImage != null)
+                {
+                    newImagePath = await _fileService.SaveFileAsync(dto.ProfileImage, "fans");
+                    fan.ProfilePicUrl = newImagePath;
+                }
 
-            var observer = await _context.Fans.FindAsync(observerId);
-            var target = await _context.Fans.FindAsync(targetId);
+                if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+                    fan.DisplayName = dto.DisplayName.Trim();
 
-            if (observer != null) observer.FollowingCount++; 
-            if (target != null) target.FollowersCount++;     
+                fan.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
 
-            return await _context.SaveChangesAsync() > 0;
+                await _context.SaveChangesAsync();
+
+                if (!string.IsNullOrWhiteSpace(oldImagePath) &&
+                    !string.Equals(oldImagePath, fan.ProfilePicUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    _fileService.DeleteFile(oldImagePath);
+                }
+
+                var result = new FanProfileDto
+                {
+                    Id = fan.Id,
+                    Username = fan.Username,
+                    DisplayName = fan.DisplayName,
+                    Bio = fan.Bio,
+                    ProfilePicUrl = fan.ProfilePicUrl,
+                    FollowersCount = fan.FollowersCount,
+                    FollowingCount = fan.FollowingCount,
+                    Points = fan.Points,
+                    Posts = new List<PostDto>()
+                };
+
+                return ApiResponse<FanProfileDto>.Success(result, "تم تحديث الملف الشخصي بنجاح.");
+            }
+            catch (Exception)
+            {
+                if (!string.IsNullOrWhiteSpace(newImagePath))
+                {
+                    _fileService.DeleteFile(newImagePath);
+                }
+
+                return ApiResponse<FanProfileDto>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء تحديث الملف الشخصي.");
+            }
         }
 
-        public async Task<bool> UnfollowFanAsync(int observerId, int targetId)
+        public async Task<ApiResponse<List<FanProfileDto>>> SearchFansAsync(string query)
         {
-            
-            var follow = await _context.Follows.FindAsync(observerId, targetId);
-            if (follow == null) return false; 
+            try
+            {
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    return ApiResponse<List<FanProfileDto>>.Success(
+                        new List<FanProfileDto>(),
+                        "لا توجد نتائج لأن عبارة البحث فارغة.");
+                }
 
-            
-            _context.Follows.Remove(follow);
+                query = query.Trim();
 
-            
-            var observer = await _context.Fans.FindAsync(observerId);
-            var target = await _context.Fans.FindAsync(targetId);
+                var results = await _context.Fans
+                    .AsNoTracking()
+                    .Where(f =>
+                        EF.Functions.Like(f.DisplayName, $"%{query}%") ||
+                        EF.Functions.Like(f.Username, $"%{query}%"))
+                    .OrderBy(f => f.DisplayName)
+                    .Take(20)
+                    .Select(f => new FanProfileDto
+                    {
+                        Id = f.Id,
+                        Username = f.Username,
+                        DisplayName = f.DisplayName,
+                        Bio = f.Bio,
+                        ProfilePicUrl = f.ProfilePicUrl,
+                        FollowersCount = f.FollowersCount,
+                        FollowingCount = f.FollowingCount,
+                        Points = f.Points,
+                        Posts = new List<PostDto>()
+                    })
+                    .ToListAsync();
 
-            if (observer != null) observer.FollowingCount--;
-            if (target != null) target.FollowersCount--;
-
-            return await _context.SaveChangesAsync() > 0;
+                return ApiResponse<List<FanProfileDto>>.Success(results, "تم جلب نتائج البحث بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<List<FanProfileDto>>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء البحث عن المشجعين.");
+            }
         }
 
-        public async Task<bool> IsFollowingAsync(int observerId, int targetId)
+        public async Task<ApiResponse<object>> FollowFanAsync(int followerId, int followedFanId)
         {
-            return await _context.Follows.AnyAsync(f => f.ObserverId == observerId && f.TargetId == targetId);
+            try
+            {
+                if (followerId == followedFanId)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "لا يمكن للمستخدم متابعة نفسه.");
+                }
+
+                var follower = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followerId);
+                var followedFan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followedFanId);
+
+                if (follower == null || followedFan == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "أحد المستخدمين غير موجود.");
+                }
+
+                var exists = await _context.Follows.AnyAsync(f =>
+                    f.FollowerId == followerId && f.FollowedFanId == followedFanId);
+
+                if (exists)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "أنت تتابع هذا المستخدم بالفعل.");
+                }
+
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    var follow = new Follow
+                    {
+                        FollowerId = followerId,
+                        FollowedFanId = followedFanId,
+                        FollowDate = DateTime.UtcNow
+                    };
+
+                    await _context.Follows.AddAsync(follow);
+                    await _context.SaveChangesAsync();
+
+                    follower.FollowingCount = await _context.Follows.CountAsync(f => f.FollowerId == followerId);
+                    followedFan.FollowersCount = await _context.Follows.CountAsync(f => f.FollowedFanId == followedFanId);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return ApiResponse<object>.Success(null, "تمت المتابعة بنجاح.");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.InternalServerError,
+                        "حدث خطأ أثناء تنفيذ المتابعة.");
+                }
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء تنفيذ المتابعة.");
+            }
+        }
+
+        public async Task<ApiResponse<object>> UnfollowFanAsync(int followerId, int followedFanId)
+        {
+            try
+            {
+                var follower = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followerId);
+                var followedFan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == followedFanId);
+
+                if (follower == null || followedFan == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.NotFound,
+                        "أحد المستخدمين غير موجود.");
+                }
+
+                var follow = await _context.Follows.FirstOrDefaultAsync(f =>
+                    f.FollowerId == followerId && f.FollowedFanId == followedFanId);
+
+                if (follow == null)
+                {
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.BadRequest,
+                        "أنت لا تتابع هذا المستخدم.");
+                }
+
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+
+                try
+                {
+                    _context.Follows.Remove(follow);
+                    await _context.SaveChangesAsync();
+
+                    follower.FollowingCount = await _context.Follows.CountAsync(f => f.FollowerId == followerId);
+                    followedFan.FollowersCount = await _context.Follows.CountAsync(f => f.FollowedFanId == followedFanId);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return ApiResponse<object>.Success(null, "تم إلغاء المتابعة بنجاح.");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    return ApiResponse<object>.Fail(
+                        HttpStatusCode.InternalServerError,
+                        "حدث خطأ أثناء إلغاء المتابعة.");
+                }
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء إلغاء المتابعة.");
+            }
+        }
+
+        public async Task<ApiResponse<bool>> IsFollowingAsync(int followerId, int followedFanId)
+        {
+            try
+            {
+                var isFollowing = await _context.Follows.AnyAsync(f =>
+                    f.FollowerId == followerId && f.FollowedFanId == followedFanId);
+
+                return ApiResponse<bool>.Success(isFollowing, "تم التحقق من حالة المتابعة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<bool>.Fail(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء التحقق من حالة المتابعة.");
+            }
         }
     }
 }

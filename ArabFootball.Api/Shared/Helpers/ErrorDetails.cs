@@ -2,20 +2,17 @@
 {
     public class ErrorDetails
     {
-
-        public ErrorDetails(string field,string ErrorMessage)
+        public ErrorDetails(string field, string errorMessage)
         {
-            Field=field;
-            Message=ErrorMessage;
-
-
+            Field = field;
+            Message = errorMessage;
         }
+
         public ErrorDetails()
         {
-            
         }
-        public string Field { get; set; }
-        public string Message { get; set; }
 
+        public string Field { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 }

@@ -1,19 +1,15 @@
-﻿using ArabFootball.Shared.Helpers;
-using ArabFootball.Api.Features.Auth.AuthDto;
+﻿using ArabFootball.Api.Features.Auth.AuthDto;
+using ArabFootball.Shared.Helpers;
 
-namespace ArabFootball.Api.Features.Users
+namespace ArabFootball.Api.Features.Auth
 {
     public interface IAuthService
     {
-        Task <ApiResponse<AuthResponseDto>> LoginAsync(string email, string password);
-        Task <ApiResponse<AuthResponseDto>> LogoutAsync(int userId);
+        Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto);
+        Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginDto dto);
+        Task<ApiResponse<object>> LogoutAsync();
+
         string HashPassword(string password);
         bool VerifyPassword(string password, string passwordHash);
-
-        Task<ApiResponse<string>> RegisterAsync(RegisterDto dto);
-
-
     }
-
 }
-

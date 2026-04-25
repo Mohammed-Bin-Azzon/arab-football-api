@@ -9,13 +9,13 @@ namespace ArabFootball.Api.Shared.Entity
         public int Id { get; set; }
 
         [Required]
-        public string Username { get; set; }
+        public string Username { get; set; } = null!;
 
         [Required]
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
 
         [Required]
-        public string PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = null!;
 
         [Required]
         public UserRole Role { get; set; }

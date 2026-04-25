@@ -1,11 +1,15 @@
-﻿using ArabFootball.Api.Features.Comments;
+﻿using System.Security.Claims;
+using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Comments.CommentsDto;
+using ArabFootball.Api.Shared.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CommentsController : ControllerBase
     {
         private readonly ICommentsService _commentsService;
@@ -15,20 +19,22 @@ namespace ArabFootball.Api.Controllers
             _commentsService = commentsService;
         }
 
-        [HttpPost("add")]
+        [HttpPost]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
-            var result = await _commentsService.AddCommentAsync(dto);
-            if (result == null) return NotFound(new { message = "المنشور غير موجود" });
-            return Ok(result);
+            if (!ModelState.IsValid)
+                return this.ValidationProblemResponse("بيانات التعليق غير صالحة.");
+
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var response = await _commentsService.AddCommentAsync(fanId, dto);
+            return this.ToActionResult(response);
         }
 
-        [HttpGet("post/{postId}")]
+        [HttpGet("post/{postId:int}")]
         public async Task<IActionResult> GetPostComments(int postId)
         {
-            var comments = await _commentsService.GetPostCommentsAsync(postId);
-            return Ok(comments);
+            var response = await _commentsService.GetPostCommentsAsync(postId);
+            return this.ToActionResult(response);
         }
     }
 }
-
