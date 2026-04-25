@@ -6,6 +6,7 @@ using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Fans;
 using ArabFootball.Api.Features.Likes;
 using ArabFootball.Api.Features.Matchs;
+using ArabFootball.Api.Features.Messages;
 using ArabFootball.Api.Features.Posts.Services;
 using ArabFootball.Api.Features.Predictions;
 using ArabFootball.Api.Shared.Data;
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IPredictionsService, PredictionsService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IChatMemberService, ChatMemberService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 // DbContext
 builder.Services.AddDbContext<AppDBContext>(options =>
@@ -126,7 +128,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapHub<ChatHub>("/chatHub");
 app.MapControllers();
 
 app.Run();
