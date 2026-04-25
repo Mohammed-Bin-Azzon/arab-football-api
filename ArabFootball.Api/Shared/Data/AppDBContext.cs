@@ -16,6 +16,7 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Match> Matches => Set<Match>();
         public DbSet<Message> Messages => Set<Message>();
         public DbSet<Chat> Chats => Set<Chat>();
+        public DbSet<ChatMember> ChatMembers => Set<ChatMember>();
         public DbSet<Post> Posts => Set<Post>();
         public DbSet<Like> Likes => Set<Like>();
         public DbSet<Comment> Comments => Set<Comment>();

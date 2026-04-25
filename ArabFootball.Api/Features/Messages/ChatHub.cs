@@ -1,8 +1,10 @@
 ﻿using ArabFootball.Api.Features.Messages.MessageDto;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ArabFootball.Api.Features.Messages
 {
+    [Authorize]
     public class ChatHub : Hub
     {
         private readonly IMessageService _messageService;
