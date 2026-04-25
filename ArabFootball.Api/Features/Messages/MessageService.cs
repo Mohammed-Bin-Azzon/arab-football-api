@@ -8,7 +8,7 @@ using System.Net;
 
 namespace ArabFootball.Api.Features.Messages
 {
-    public class MessageService
+    public class MessageService : IMessageService
     {
         private readonly AppDBContext _context;
 
@@ -79,7 +79,7 @@ namespace ArabFootball.Api.Features.Messages
         }
 
 
-        public async Task<ApiResponse<List<Message>>> GetMessages(int chatId)
+        public async Task<ApiResponse<List<Message>>> GetAllMessages(int chatId)
         {
             var exists = await _context.Chats
                 .AnyAsync(c => c.ChatId == chatId);
@@ -130,19 +130,18 @@ namespace ArabFootball.Api.Features.Messages
             return ApiResponse<bool>.Success(true, "Message marked as read");
         }
 
-        public async Task CreateSystemMessage(int chatId, string content)
+        public async Task<Message?> CreateSystemMessage(int chatId, string content)
         {
-            // تحقق من الشات (اختياري لكن أفضل)
             var chatExists = await _context.Chats
                 .AnyAsync(c => c.ChatId == chatId);
 
             if (!chatExists)
-                return;
+                return null;
 
             var message = new Message
             {
                 ChatId = chatId,
-                SenderId = null, // مهم جدًا 🔥
+                SenderId = null,
                 Content = content,
                 MessageType = MessageType.System,
                 CreatedAt = DateTime.UtcNow,
@@ -151,6 +150,8 @@ namespace ArabFootball.Api.Features.Messages
 
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
+
+            return message;
         }
     }
 }

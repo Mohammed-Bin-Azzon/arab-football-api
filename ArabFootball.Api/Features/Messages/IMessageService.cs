@@ -10,7 +10,7 @@ namespace ArabFootball.Api.Features.Messages
         Task<ApiResponse<Message>> SendMessage(SendMessageDto dto, int senderId);
 
         // Get Messages
-        Task<ApiResponse<List<Message>>> GetMessages(int chatId);
+        Task<ApiResponse<List<Message>>> GetAllMessages(int chatId);
 
         // Delete Message
         Task<ApiResponse<bool>> DeleteMessage(int messageId, int requesterId);
@@ -18,6 +18,6 @@ namespace ArabFootball.Api.Features.Messages
         // Mark as Read
         Task<ApiResponse<bool>> MarkAsRead(int messageId, int userId);
 
-        Task CreateSystemMessage(int chatId, string content);
+        Task<Message?> CreateSystemMessage(int chatId, string content);
     }
 }
