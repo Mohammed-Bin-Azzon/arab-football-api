@@ -23,7 +23,7 @@ namespace ArabFootball.Api.Features.Bookmarks
                 var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
                 if (!fanExists)
                 {
-                    return ApiResponse<BookmarkResultDto>.Fail(
+                    return ApiResponse<BookmarkResultDto>.Error(
                         HttpStatusCode.NotFound,
                         "المستخدم غير موجود.");
                 }
@@ -31,7 +31,7 @@ namespace ArabFootball.Api.Features.Bookmarks
                 var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
                 if (post == null)
                 {
-                    return ApiResponse<BookmarkResultDto>.Fail(
+                    return ApiResponse<BookmarkResultDto>.Error(
                         HttpStatusCode.NotFound,
                         "المنشور غير موجود.");
                 }
@@ -85,14 +85,14 @@ namespace ArabFootball.Api.Features.Bookmarks
                 {
                     await transaction.RollbackAsync();
 
-                    return ApiResponse<BookmarkResultDto>.Fail(
+                    return ApiResponse<BookmarkResultDto>.Error(
                         HttpStatusCode.BadRequest,
                         "تعذر تنفيذ العملية بسبب تعارض في البيانات. أعد المحاولة.");
                 }
             }
             catch (Exception)
             {
-                return ApiResponse<BookmarkResultDto>.Fail(
+                return ApiResponse<BookmarkResultDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تنفيذ العملية.");
             }

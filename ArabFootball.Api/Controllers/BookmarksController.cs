@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using api_training.Controllers;
 using ArabFootball.Api.Features.Bookmarks;
 using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ namespace ArabFootball.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class BookmarksController : ControllerBase
+    public class BookmarksController : AppControllerBase    
     {
         private readonly IBookmarksService _bookmarksService;
 
@@ -22,8 +23,7 @@ namespace ArabFootball.Api.Controllers
         public async Task<IActionResult> ToggleBookmark(int postId)
         {
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var response = await _bookmarksService.ToggleBookmarkAsync(postId, fanId);
-            return this.ToActionResult(response);
+            return Response(await _bookmarksService.ToggleBookmarkAsync(postId, fanId));
         }
     }
 }

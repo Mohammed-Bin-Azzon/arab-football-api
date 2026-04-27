@@ -59,7 +59,7 @@ namespace ArabFootball.Api.Features.Fans
 
                 if (profile == null)
                 {
-                    return ApiResponse<FanProfileDto>.Fail(
+                    return ApiResponse<FanProfileDto>.Error(
                         HttpStatusCode.NotFound,
                         "المشجع غير موجود.");
                 }
@@ -68,7 +68,7 @@ namespace ArabFootball.Api.Features.Fans
             }
             catch (Exception)
             {
-                return ApiResponse<FanProfileDto>.Fail(
+                return ApiResponse<FanProfileDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء جلب الملف الشخصي.");
             }
@@ -84,7 +84,7 @@ namespace ArabFootball.Api.Features.Fans
                 var fan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == fanId);
                 if (fan == null)
                 {
-                    return ApiResponse<FanProfileDto>.Fail(
+                    return ApiResponse<FanProfileDto>.Error(
                         HttpStatusCode.NotFound,
                         "المشجع غير موجود.");
                 }
@@ -132,7 +132,7 @@ namespace ArabFootball.Api.Features.Fans
                     _fileService.DeleteFile(newImagePath);
                 }
 
-                return ApiResponse<FanProfileDto>.Fail(
+                return ApiResponse<FanProfileDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تحديث الملف الشخصي.");
             }
@@ -176,7 +176,7 @@ namespace ArabFootball.Api.Features.Fans
             }
             catch (Exception)
             {
-                return ApiResponse<List<FanProfileDto>>.Fail(
+                return ApiResponse<List<FanProfileDto>>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء البحث عن المشجعين.");
             }
@@ -188,7 +188,7 @@ namespace ArabFootball.Api.Features.Fans
             {
                 if (followerId == followedFanId)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.BadRequest,
                         "لا يمكن للمستخدم متابعة نفسه.");
                 }
@@ -198,7 +198,7 @@ namespace ArabFootball.Api.Features.Fans
 
                 if (follower == null || followedFan == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "أحد المستخدمين غير موجود.");
                 }
@@ -208,7 +208,7 @@ namespace ArabFootball.Api.Features.Fans
 
                 if (exists)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.BadRequest,
                         "أنت تتابع هذا المستخدم بالفعل.");
                 }
@@ -238,14 +238,14 @@ namespace ArabFootball.Api.Features.Fans
                 catch
                 {
                     await transaction.RollbackAsync();
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.InternalServerError,
                         "حدث خطأ أثناء تنفيذ المتابعة.");
                 }
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تنفيذ المتابعة.");
             }
@@ -260,7 +260,7 @@ namespace ArabFootball.Api.Features.Fans
 
                 if (follower == null || followedFan == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "أحد المستخدمين غير موجود.");
                 }
@@ -270,7 +270,7 @@ namespace ArabFootball.Api.Features.Fans
 
                 if (follow == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.BadRequest,
                         "أنت لا تتابع هذا المستخدم.");
                 }
@@ -293,14 +293,14 @@ namespace ArabFootball.Api.Features.Fans
                 catch
                 {
                     await transaction.RollbackAsync();
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.InternalServerError,
                         "حدث خطأ أثناء إلغاء المتابعة.");
                 }
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء إلغاء المتابعة.");
             }
@@ -317,7 +317,7 @@ namespace ArabFootball.Api.Features.Fans
             }
             catch (Exception)
             {
-                return ApiResponse<bool>.Fail(
+                return ApiResponse<bool>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء التحقق من حالة المتابعة.");
             }

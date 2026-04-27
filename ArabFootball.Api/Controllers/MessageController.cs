@@ -20,7 +20,7 @@ namespace ArabFootball.Api.Controllers
         [HttpGet(Messages.GetByChat)]
         public async Task<IActionResult> GetByChat([FromRoute] int chatId)
         {
-            return Response(await _service.GetMessages(chatId));
+            return Response(await _service.GetAllMessages(chatId));
         }
 
         [HttpDelete(Messages.Delete)]

@@ -33,14 +33,14 @@ namespace ArabFootball.Api.Features.Posts.Services
                 var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
                 if (!fanExists)
                 {
-                    return ApiResponse<PostDto>.Fail(
+                    return ApiResponse<PostDto>.Error(
                         HttpStatusCode.NotFound,
                         "المستخدم غير موجود.");
                 }
 
                 if (dto.MediaFile == null || dto.MediaFile.Length == 0)
                 {
-                    return ApiResponse<PostDto>.Fail(
+                    return ApiResponse<PostDto>.Error(
                         HttpStatusCode.BadRequest,
                         "ملف الميديا مطلوب.");
                 }
@@ -48,7 +48,7 @@ namespace ArabFootball.Api.Features.Posts.Services
                 var extension = Path.GetExtension(dto.MediaFile.FileName).ToLowerInvariant();
                 if (!AllowedExtensions.Contains(extension))
                 {
-                    return ApiResponse<PostDto>.Fail(
+                    return ApiResponse<PostDto>.Error(
                         HttpStatusCode.BadRequest,
                         "نوع الملف غير مدعوم.");
                 }
@@ -101,7 +101,7 @@ namespace ArabFootball.Api.Features.Posts.Services
                     _fileService.DeleteFile(mediaPath);
                 }
 
-                return ApiResponse<PostDto>.Fail(
+                return ApiResponse<PostDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء إنشاء المنشور.");
             }
@@ -134,7 +134,7 @@ namespace ArabFootball.Api.Features.Posts.Services
             }
             catch (Exception)
             {
-                return ApiResponse<List<PostDto>>.Fail(
+                return ApiResponse<List<PostDto>>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء جلب المنشورات.");
             }
@@ -149,7 +149,7 @@ namespace ArabFootball.Api.Features.Posts.Services
 
                 if (post == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المنشور غير موجود أو لا تملك صلاحية حذفه.");
                 }
@@ -165,7 +165,7 @@ namespace ArabFootball.Api.Features.Posts.Services
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء حذف المنشور.");
             }

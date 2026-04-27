@@ -66,7 +66,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<PaginatedResult<MatchDetailsDto>>.Fail(
+                return ApiResponse<PaginatedResult<MatchDetailsDto>>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء جلب المباريات.");
             }
@@ -95,7 +95,7 @@ namespace ArabFootball.Api.Features.Matchs
 
                 if (match == null)
                 {
-                    return ApiResponse<MatchDetailsDto>.Fail(
+                    return ApiResponse<MatchDetailsDto>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -106,7 +106,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<MatchDetailsDto>.Fail(
+                return ApiResponse<MatchDetailsDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء جلب المباراة.");
             }
@@ -119,7 +119,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var adminExists = await _context.Admins.AnyAsync(a => a.Id == adminId);
                 if (!adminExists)
                 {
-                    return ApiResponse<MatchDetailsDto>.Fail(
+                    return ApiResponse<MatchDetailsDto>.Error(
                         HttpStatusCode.BadRequest,
                         "المشرف غير موجود.");
                 }
@@ -158,7 +158,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<MatchDetailsDto>.Fail(
+                return ApiResponse<MatchDetailsDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء إنشاء المباراة.");
             }
@@ -171,7 +171,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<MatchDetailsDto>.Fail(
+                    return ApiResponse<MatchDetailsDto>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -203,7 +203,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<MatchDetailsDto>.Fail(
+                return ApiResponse<MatchDetailsDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تحديث المباراة.");
             }
@@ -216,7 +216,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -228,7 +228,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء حذف المباراة.");
             }
@@ -241,7 +241,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -253,7 +253,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تحديث حالة المباراة.");
             }
@@ -266,7 +266,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -278,7 +278,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء فتح التوقعات.");
             }
@@ -291,7 +291,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -303,7 +303,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء إغلاق التوقعات.");
             }
@@ -316,7 +316,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -328,7 +328,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء ربط المحادثة.");
             }
@@ -341,7 +341,7 @@ namespace ArabFootball.Api.Features.Matchs
                 var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
                 if (match == null)
                 {
-                    return ApiResponse<object>.Fail(
+                    return ApiResponse<object>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
@@ -353,7 +353,7 @@ namespace ArabFootball.Api.Features.Matchs
             }
             catch (Exception)
             {
-                return ApiResponse<object>.Fail(
+                return ApiResponse<object>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء فك ربط المحادثة.");
             }

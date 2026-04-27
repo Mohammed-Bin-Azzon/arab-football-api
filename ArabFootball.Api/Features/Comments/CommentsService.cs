@@ -23,7 +23,7 @@ namespace ArabFootball.Api.Features.Comments
                 var content = dto.Content?.Trim();
                 if (string.IsNullOrWhiteSpace(content))
                 {
-                    return ApiResponse<CommentDto>.Fail(
+                    return ApiResponse<CommentDto>.Error(
                         HttpStatusCode.BadRequest,
                         "محتوى التعليق مطلوب.");
                 }
@@ -34,7 +34,7 @@ namespace ArabFootball.Api.Features.Comments
 
                 if (fan == null)
                 {
-                    return ApiResponse<CommentDto>.Fail(
+                    return ApiResponse<CommentDto>.Error(
                         HttpStatusCode.NotFound,
                         "المستخدم غير موجود.");
                 }
@@ -44,7 +44,7 @@ namespace ArabFootball.Api.Features.Comments
 
                 if (post == null)
                 {
-                    return ApiResponse<CommentDto>.Fail(
+                    return ApiResponse<CommentDto>.Error(
                         HttpStatusCode.NotFound,
                         "المنشور غير موجود.");
                 }
@@ -86,14 +86,14 @@ namespace ArabFootball.Api.Features.Comments
                 catch
                 {
                     await transaction.RollbackAsync();
-                    return ApiResponse<CommentDto>.Fail(
+                    return ApiResponse<CommentDto>.Error(
                         HttpStatusCode.InternalServerError,
                         "حدث خطأ أثناء إضافة التعليق.");
                 }
             }
             catch (Exception)
             {
-                return ApiResponse<CommentDto>.Fail(
+                return ApiResponse<CommentDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ غير متوقع أثناء إضافة التعليق.");
             }
@@ -109,7 +109,7 @@ namespace ArabFootball.Api.Features.Comments
 
                 if (!postExists)
                 {
-                    return ApiResponse<List<CommentDto>>.Fail(
+                    return ApiResponse<List<CommentDto>>.Error(
                         HttpStatusCode.NotFound,
                         "المنشور غير موجود.");
                 }
@@ -133,7 +133,7 @@ namespace ArabFootball.Api.Features.Comments
             }
             catch (Exception)
             {
-                return ApiResponse<List<CommentDto>>.Fail(
+                return ApiResponse<List<CommentDto>>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء جلب التعليقات.");
             }

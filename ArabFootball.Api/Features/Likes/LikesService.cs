@@ -23,7 +23,7 @@ namespace ArabFootball.Api.Features.Likes
                 var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
                 if (!fanExists)
                 {
-                    return ApiResponse<LikeResultDto>.Fail(
+                    return ApiResponse<LikeResultDto>.Error(
                         HttpStatusCode.NotFound,
                         "المستخدم غير موجود.");
                 }
@@ -31,7 +31,7 @@ namespace ArabFootball.Api.Features.Likes
                 var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
                 if (post == null)
                 {
-                    return ApiResponse<LikeResultDto>.Fail(
+                    return ApiResponse<LikeResultDto>.Error(
                         HttpStatusCode.NotFound,
                         "المنشور غير موجود.");
                 }
@@ -85,14 +85,14 @@ namespace ArabFootball.Api.Features.Likes
                 {
                     await transaction.RollbackAsync();
 
-                    return ApiResponse<LikeResultDto>.Fail(
+                    return ApiResponse<LikeResultDto>.Error(
                         HttpStatusCode.BadRequest,
                         "تعذر تنفيذ العملية بسبب تعارض في البيانات. أعد المحاولة.");
                 }
             }
             catch (Exception)
             {
-                return ApiResponse<LikeResultDto>.Fail(
+                return ApiResponse<LikeResultDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تنفيذ العملية.");
             }

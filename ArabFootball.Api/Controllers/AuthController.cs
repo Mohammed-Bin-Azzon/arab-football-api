@@ -1,4 +1,5 @@
-﻿using ArabFootball.Api.Features.Auth;
+﻿using api_training.Controllers;
+using ArabFootball.Api.Features.Auth;
 using ArabFootball.Api.Features.Auth.AuthDto;
 using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +9,7 @@ namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController : ControllerBase
+    public class AuthController : AppControllerBase
     {
         private readonly IAuthService _authService;
 
@@ -21,30 +22,27 @@ namespace ArabFootball.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            if (!ModelState.IsValid)
-                return this.ValidationProblemResponse("بيانات التسجيل غير صالحة.");
+            //if (!ModelState.IsValid)
+            //    return this.ValidationProblemResponse("بيانات التسجيل غير صالحة.");
 
-            var response = await _authService.RegisterAsync(dto);
-            return this.ToActionResult(response);
+            return Response(await _authService.RegisterAsync(dto));
         }
 
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            if (!ModelState.IsValid)
-                return this.ValidationProblemResponse("بيانات تسجيل الدخول غير صالحة.");
+            //if (!ModelState.IsValid)
+            //    return this.ValidationProblemResponse("بيانات تسجيل الدخول غير صالحة.");
 
-            var response = await _authService.LoginAsync(dto);
-            return this.ToActionResult(response);
+            return Response(await _authService.LoginAsync(dto));
         }
 
         [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var response = await _authService.LogoutAsync();
-            return this.ToActionResult(response);
+            return Response(await _authService.LogoutAsync());
         }
     }
 }

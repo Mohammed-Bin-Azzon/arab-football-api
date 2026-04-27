@@ -24,7 +24,7 @@ namespace ArabFootball.Api.Features.Predictions
                 var fanExists = await _context.Fans.AnyAsync(f => f.Id == fanId);
                 if (!fanExists)
                 {
-                    return ApiResponse<PredictionDto>.Fail(
+                    return ApiResponse<PredictionDto>.Error(
                         HttpStatusCode.NotFound,
                         "المستخدم غير موجود.");
                 }
@@ -34,21 +34,21 @@ namespace ArabFootball.Api.Features.Predictions
 
                 if (match == null)
                 {
-                    return ApiResponse<PredictionDto>.Fail(
+                    return ApiResponse<PredictionDto>.Error(
                         HttpStatusCode.NotFound,
                         "المباراة غير موجودة.");
                 }
 
                 if (match.PredictionState != PredictionState.Open)
                 {
-                    return ApiResponse<PredictionDto>.Fail(
+                    return ApiResponse<PredictionDto>.Error(
                         HttpStatusCode.BadRequest,
                         "التوقعات مغلقة لهذه المباراة.");
                 }
 
                 if (DateTime.UtcNow >= match.StartTime)
                 {
-                    return ApiResponse<PredictionDto>.Fail(
+                    return ApiResponse<PredictionDto>.Error(
                         HttpStatusCode.BadRequest,
                         "انتهى وقت إرسال أو تعديل التوقع لهذه المباراة.");
                 }
@@ -60,7 +60,7 @@ namespace ArabFootball.Api.Features.Predictions
                 {
                     if (existingPrediction.IsProcessed)
                     {
-                        return ApiResponse<PredictionDto>.Fail(
+                        return ApiResponse<PredictionDto>.Error(
                             HttpStatusCode.BadRequest,
                             "لا يمكن تعديل التوقع بعد معالجته.");
                     }
@@ -103,7 +103,7 @@ namespace ArabFootball.Api.Features.Predictions
                 }
                 catch (DbUpdateException)
                 {
-                    return ApiResponse<PredictionDto>.Fail(
+                    return ApiResponse<PredictionDto>.Error(
                         HttpStatusCode.BadRequest,
                         "يوجد توقع مسجل بالفعل لهذه المباراة.");
                 }
@@ -125,7 +125,7 @@ namespace ArabFootball.Api.Features.Predictions
             }
             catch (Exception)
             {
-                return ApiResponse<PredictionDto>.Fail(
+                return ApiResponse<PredictionDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء إرسال التوقع.");
             }
@@ -157,7 +157,7 @@ namespace ArabFootball.Api.Features.Predictions
             }
             catch (Exception)
             {
-                return ApiResponse<List<PredictionDto>>.Fail(
+                return ApiResponse<List<PredictionDto>>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء جلب التوقعات.");
             }

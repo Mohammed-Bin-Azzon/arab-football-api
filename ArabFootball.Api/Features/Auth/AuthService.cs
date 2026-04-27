@@ -33,14 +33,14 @@ namespace ArabFootball.Api.Features.Auth
 
                 if (await _context.Users.AnyAsync(u => u.Username == username))
                 {
-                    return ApiResponse<AuthResponseDto>.Fail(
+                    return ApiResponse<AuthResponseDto>.Error(
                         HttpStatusCode.BadRequest,
                         "اسم المستخدم مستخدم بالفعل.");
                 }
 
                 if (await _context.Users.AnyAsync(u => u.Email == email))
                 {
-                    return ApiResponse<AuthResponseDto>.Fail(
+                    return ApiResponse<AuthResponseDto>.Error(
                         HttpStatusCode.BadRequest,
                         "البريد الإلكتروني مستخدم بالفعل.");
                 }
@@ -66,7 +66,7 @@ namespace ArabFootball.Api.Features.Auth
             }
             catch (Exception)
             {
-                return ApiResponse<AuthResponseDto>.Fail(
+                return ApiResponse<AuthResponseDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء إنشاء الحساب.");
             }
@@ -84,7 +84,7 @@ namespace ArabFootball.Api.Features.Auth
 
                 if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
                 {
-                    return ApiResponse<AuthResponseDto>.Fail(
+                    return ApiResponse<AuthResponseDto>.Error(
                         HttpStatusCode.Unauthorized,
                         "بيانات الدخول غير صحيحة.");
                 }
@@ -97,7 +97,7 @@ namespace ArabFootball.Api.Features.Auth
             }
             catch (Exception)
             {
-                return ApiResponse<AuthResponseDto>.Fail(
+                return ApiResponse<AuthResponseDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تسجيل الدخول.");
             }

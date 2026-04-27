@@ -50,20 +50,7 @@ namespace ArabFootball.Api.Controllers
         {
             return Response(await _service.CreateMatchChat(matchId));
         }
-
-        
-        [HttpPost(Chats.AddMember)]
-        public async Task<IActionResult> AddMember([FromRoute] int id, [FromBody] int fanId)
-        {
-            return Response(await _service.AddMember(id, fanId));
-        }
-
-        
-        [HttpDelete(Chats.RemoveMember)]
-        public async Task<IActionResult> RemoveMember([FromRoute] int id, [FromBody] int fanId)
-        {
-            return Response(await _service.RemoveMember(id, fanId));
-        }
+               
     }
 }
 

@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using api_training.Controllers;
 using ArabFootball.Api.Features.Likes;
 using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,7 @@ namespace ArabFootball.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class LikesController : ControllerBase
+    public class LikesController : AppControllerBase
     {
         private readonly ILikesService _likesService;
 
@@ -22,8 +23,7 @@ namespace ArabFootball.Api.Controllers
         public async Task<IActionResult> ToggleLike(int postId)
         {
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var response = await _likesService.ToggleLikeAsync(postId, fanId);
-            return this.ToActionResult(response);
+            return Response(await _likesService.ToggleLikeAsync(postId, fanId));
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using api_training.Controllers;
 using ArabFootball.Api.Features.Comments;
 using ArabFootball.Api.Features.Comments.CommentsDto;
 using ArabFootball.Api.Shared.Helpers;
@@ -10,7 +11,7 @@ namespace ArabFootball.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class CommentsController : ControllerBase
+    public class CommentsController : AppControllerBase
     {
         private readonly ICommentsService _commentsService;
 
@@ -22,19 +23,17 @@ namespace ArabFootball.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
-            if (!ModelState.IsValid)
-                return this.ValidationProblemResponse("بيانات التعليق غير صالحة.");
+            //if (!ModelState.IsValid)
+            //    return this.ValidationProblemResponse("بيانات التعليق غير صالحة.");
 
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var response = await _commentsService.AddCommentAsync(fanId, dto);
-            return this.ToActionResult(response);
+            return Response(await _commentsService.AddCommentAsync(fanId, dto));
         }
 
         [HttpGet("post/{postId:int}")]
         public async Task<IActionResult> GetPostComments(int postId)
         {
-            var response = await _commentsService.GetPostCommentsAsync(postId);
-            return this.ToActionResult(response);
+            return Response(await _commentsService.GetPostCommentsAsync(postId));
         }
     }
 }

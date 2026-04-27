@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using api_training.Controllers;
 using ArabFootball.Api.Features.Predictions;
 using ArabFootball.Api.Features.Predictions.PredictionsDto;
 using ArabFootball.Api.Shared.Helpers;
@@ -10,7 +11,7 @@ namespace ArabFootball.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class PredictionsController : ControllerBase
+    public class PredictionsController : AppControllerBase
     {
         private readonly IPredictionsService _predictionsService;
 
@@ -22,20 +23,18 @@ namespace ArabFootball.Api.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> SubmitPrediction([FromBody] SubmitPredictionDto dto)
         {
-            if (!ModelState.IsValid)
-                return this.ValidationProblemResponse("بيانات التوقع غير صالحة.");
+            //if (!ModelState.IsValid)
+            //    return this.ValidationProblemResponse("بيانات التوقع غير صالحة.");
 
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var response = await _predictionsService.SubmitPredictionAsync(fanId, dto);
-            return this.ToActionResult(response);
+            return Response(await _predictionsService.SubmitPredictionAsync(fanId, dto));
         }
 
         [HttpGet("me")]
         public async Task<IActionResult> GetMyPredictions()
         {
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            var response = await _predictionsService.GetMyPredictionsAsync(fanId);
-            return this.ToActionResult(response);
+            return Response(await _predictionsService.GetMyPredictionsAsync(fanId));
         }
     }
 }
