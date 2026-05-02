@@ -71,6 +71,8 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IChatMemberService, ChatMemberService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 
+builder.Services.AddSignalR();
+
 // DbContext
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

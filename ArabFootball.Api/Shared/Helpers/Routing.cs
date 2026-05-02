@@ -38,9 +38,9 @@
 
             public const string GetAll = Prefix;
             public const string GetById = Prefix + "/{id:int}";
-            public const string CreatePrivate = Prefix + "/{id:int}/create-private";
-            public const string CreateGroup = Prefix + "/{id:int}/create-group";
-            public const string CreateMatch = Prefix + "/{id:int}/create-match/{matchId}";
+            public const string CreatePrivate = Prefix + "/create-private";
+            public const string CreateGroup = Prefix + "/create-group";
+            public const string CreateMatch = Prefix + "/create-match";
 
         }
         public static class ChatMembers
