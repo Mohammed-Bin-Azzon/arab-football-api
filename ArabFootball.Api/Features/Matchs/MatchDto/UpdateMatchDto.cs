@@ -16,6 +16,5 @@ namespace ArabFootball.Api.Features.Matchs.MatchDto
         [Required]
         public DateTime StartTime { get; set; }
 
-        public string? StatsJson { get; set; }
     }
 }

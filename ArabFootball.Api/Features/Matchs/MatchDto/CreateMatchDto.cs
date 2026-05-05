@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ArabFootball.Api.Features.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace ArabFootball.Api.Features.Matchs.MatchDto
 {
@@ -13,9 +14,8 @@ namespace ArabFootball.Api.Features.Matchs.MatchDto
         [Required, MaxLength(100)]
         public string League { get; set; } = null!;
 
-        [Required]
         public DateTime StartTime { get; set; }
 
-        public string? StatsJson { get; set; }
+        
     }
 }

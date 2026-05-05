@@ -4,7 +4,6 @@ namespace ArabFootball.Api.Features.Matchs.MatchDto
 {
     public class MatchDetailsDto
     {
-        public int Id { get; set; }
         public string HomeTeam { get; set; } = null!;
         public string AwayTeam { get; set; } = null!;
         public string League { get; set; } = null!;
@@ -12,6 +11,5 @@ namespace ArabFootball.Api.Features.Matchs.MatchDto
         public MatchStatus Status { get; set; }
         public PredictionState PredictionState { get; set; }
         public string? ChatUrl { get; set; }
-        public string? StatsJson { get; set; }
     }
 }

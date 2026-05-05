@@ -1,5 +1,6 @@
 ﻿using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Features.Matchs.MatchDto;
+using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Shared.Helpers;
 
 namespace ArabFootball.Api.Features.Matchs
@@ -10,12 +11,12 @@ namespace ArabFootball.Api.Features.Matchs
         Task<ApiResponse<MatchDetailsDto>> GetMatchByIdAsync(int matchId);
         Task<ApiResponse<MatchDetailsDto>> CreateMatchAsync(CreateMatchDto dto, int adminId);
         Task<ApiResponse<MatchDetailsDto>> UpdateMatchAsync(int matchId, UpdateMatchDto dto);
-
-        Task<ApiResponse<object>> DeleteMatchAsync(int matchId);
-        Task<ApiResponse<object>> ChangeStatusAsync(int matchId, MatchStatus status);
-        Task<ApiResponse<object>> OpenPredictionsAsync(int matchId);
-        Task<ApiResponse<object>> ClosePredictionsAsync(int matchId);
-        Task<ApiResponse<object>> LinkChatAsync(int matchId, string chatUrl);
-        Task<ApiResponse<object>> UnlinkChatAsync(int matchId);
+        
+        Task<ApiResponse<bool>> DeleteMatchAsync(int matchId);
+        Task<ApiResponse<bool>> ChangeStatusAsync(int matchId, MatchStatus status);
+        Task<ApiResponse<bool>> OpenPredictionsAsync(int matchId);
+        Task<ApiResponse<bool>> ClosePredictionsAsync(int matchId);
+        Task<ApiResponse<bool>> LinkChatAsync(int matchId, string chatUrl);
+        Task<ApiResponse<bool>> UnlinkChatAsync(int matchId);
     }
 }
