@@ -7,17 +7,17 @@ namespace ArabFootball.Api.Features.Messages
     public interface IMessageService
     {
         // Send Message
-        Task<ApiResponse<Message>> SendMessage(SendMessageDto dto, int senderId);
+        Task<ApiResponse<Message>> SendMessageAsync(SendMessageDto dto, int senderId);
 
         // Get Messages
-        Task<ApiResponse<List<Message>>> GetAllMessages(int chatId);
+        Task<ApiResponse<List<Message>>> GetAllMessagesAsync(int chatId);
 
         // Delete Message
-        Task<ApiResponse<bool>> DeleteMessage(int messageId, int requesterId);
+        Task<ApiResponse<bool>> DeleteMessageAsync(int messageId, int requesterId);
 
         // Mark as Read
-        Task<ApiResponse<bool>> MarkAsRead(int messageId, int userId);
+        Task<ApiResponse<bool>> MarkAsReadAsync(int messageId, int userId);
 
-        Task<Message?> CreateSystemMessage(int chatId, string content);
+        Task<Message?> CreateSystemMessageAsync(int chatId, string content);
     }
 }

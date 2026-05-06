@@ -130,7 +130,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapHub<ChatHub>("/chatHub");
+app.MapHub<MessageHub>("/chatHub");
 app.MapControllers();
 
 app.Run();

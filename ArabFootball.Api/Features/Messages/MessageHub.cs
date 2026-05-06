@@ -1,13 +1,14 @@
 ﻿using ArabFootball.Api.Features.Messages.MessageDto;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace ArabFootball.Api.Features.Messages
 {
-    public class ChatHub : Hub
+    public class MessageHub : Hub
     {
         private readonly IMessageService _messageService;
 
-        public ChatHub(IMessageService messageService)
+        public MessageHub(IMessageService messageService)
         {
             _messageService = messageService;
         }
@@ -30,10 +31,9 @@ namespace ArabFootball.Api.Features.Messages
         public async Task SendMessage(SendMessageDto dto)
         {
             // 1. الحصول على UserId من JWT
-            var userId = int.Parse(Context.User.FindFirst("UserId").Value);
-
+            int userId = int.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             // 2. إرسال إلى Service
-            var result = await _messageService.SendMessage(dto, userId);
+            var result = await _messageService.SendMessageAsync(dto, userId);
 
             // 3. في حال الخطأ
             if (!result.IsSuccess)

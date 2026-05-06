@@ -17,7 +17,7 @@ namespace ArabFootball.Api.Features.Messages
             _context = context;
         }
 
-        public async Task<ApiResponse<Message>> SendMessage(SendMessageDto dto, int senderId)
+        public async Task<ApiResponse<Message>> SendMessageAsync(SendMessageDto dto, int senderId)
         {
             // 1. تحقق من الشات
             var chat = await _context.Chats
@@ -79,7 +79,7 @@ namespace ArabFootball.Api.Features.Messages
         }
 
 
-        public async Task<ApiResponse<List<Message>>> GetAllMessages(int chatId)
+        public async Task<ApiResponse<List<Message>>> GetAllMessagesAsync(int chatId)
         {
             var exists = await _context.Chats
                 .AnyAsync(c => c.ChatId == chatId);
@@ -96,7 +96,7 @@ namespace ArabFootball.Api.Features.Messages
         }
 
 
-        public async Task<ApiResponse<bool>> DeleteMessage(int messageId, int requesterId)
+        public async Task<ApiResponse<bool>> DeleteMessageAsync(int messageId, int requesterId)
         {
             var message = await _context.Messages
                 .FirstOrDefaultAsync(m => m.MessageId == messageId);
@@ -115,7 +115,7 @@ namespace ArabFootball.Api.Features.Messages
         }
 
 
-        public async Task<ApiResponse<bool>> MarkAsRead(int messageId, int userId)
+        public async Task<ApiResponse<bool>> MarkAsReadAsync(int messageId, int userId)
         {
             var message = await _context.Messages
                 .FirstOrDefaultAsync(m => m.MessageId == messageId);
@@ -130,7 +130,7 @@ namespace ArabFootball.Api.Features.Messages
             return ApiResponse<bool>.Success(true, "Message marked as read");
         }
 
-        public async Task<Message?> CreateSystemMessage(int chatId, string content)
+        public async Task<Message?> CreateSystemMessageAsync(int chatId, string content)
         {
             var chatExists = await _context.Chats
                 .AnyAsync(c => c.ChatId == chatId);

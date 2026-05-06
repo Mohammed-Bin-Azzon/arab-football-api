@@ -1,12 +1,16 @@
 ﻿using api_training.Controllers;
 using ArabFootball.Api.Features.Messages;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using static ArabFootball.Shared.Helpers.Routing;
 
 namespace ArabFootball.Api.Controllers
 {
-    [Route(Messages.Prefix)]
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
     public class MessageController : AppControllerBase
     {
         private readonly IMessageService _service;
@@ -17,27 +21,25 @@ namespace ArabFootball.Api.Controllers
         }
 
         
-        [HttpGet(Messages.GetByChat)]
-        public async Task<IActionResult> GetByChat([FromRoute] int chatId)
+        [HttpGet("{chatId:int}")]
+        public async Task<IActionResult> GetAllByChat([FromRoute] int chatId)
         {
-            return Response(await _service.GetAllMessages(chatId));
+            return Response(await _service.GetAllMessagesAsync(chatId));
         }
 
-        [HttpDelete(Messages.Delete)]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete([FromRoute] int id)
         {
-            int userId = int.Parse(User.FindFirst("UserId").Value);
-
-            return Response(await _service.DeleteMessage(id, userId));
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            return Response(await _service.DeleteMessageAsync(id, userId));
         }
 
         
-        [HttpPatch(Messages.MarkAsRead)]
+        [HttpPatch("{id:int}/mark-as-read")]
         public async Task<IActionResult> MarkAsRead([FromRoute] int id)
         {
-            int userId = int.Parse(User.FindFirst("UserId").Value);
-
-            return Response(await _service.MarkAsRead(id, userId));
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            return Response(await _service.MarkAsReadAsync(id, userId));
         }
     }
 }

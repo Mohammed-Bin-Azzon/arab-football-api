@@ -56,14 +56,6 @@
             public const string LeaveChat = Prefix + "/{id:int}/leave-chat";
         }
 
-        public static class Messages
-        {
-            public const string Prefix = Rule + "Messages";
-
-            public const string GetByChat = Prefix + "/{id:int}";
-            public const string Delete = Prefix + "/{id:int}";
-            public const string MarkAsRead = Prefix + "/{id:int}/mark-as-read";
-        }
-
+        
     }
 }

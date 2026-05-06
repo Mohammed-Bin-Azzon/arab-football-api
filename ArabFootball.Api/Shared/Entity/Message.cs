@@ -8,11 +8,9 @@ namespace ArabFootball.Api.Shared.Entity
         [Key]
         public int MessageId { get; set; }
 
-        // FK → Chat
         public int ChatId { get; set; }
         public Chat Chat { get; set; }
 
-        // Sender
         public int? SenderId { get; set; }
         public Fan? Sender { get; set; }
 
@@ -25,7 +23,6 @@ namespace ArabFootball.Api.Shared.Entity
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // مؤقتًا (لاحقًا نطوره)
         public bool IsRead { get; set; } = false;
     }
 }
