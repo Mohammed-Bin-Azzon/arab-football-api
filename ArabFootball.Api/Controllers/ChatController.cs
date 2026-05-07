@@ -8,8 +8,9 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace ArabFootball.Api.Controllers
 {
-    [Route(Chats.Prefix)]
-    [Authorize(Roles = "Admin")]
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
     public class ChatController : AppControllerBase
     {
         private readonly IChatService _service;
@@ -19,36 +20,36 @@ namespace ArabFootball.Api.Controllers
             _service = service;
         }
 
-        [HttpGet(Chats.GetAll)]
+        [HttpGet]
         public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            return Response(await _service.GetAllChats(pageNumber, pageSize, search));
+            return Response(await _service.GetAllChatsAsync(pageNumber, pageSize, search));
         }
 
-        [HttpGet(Chats.GetById)]
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById([FromRoute] int id)
         {
-            return Response(await _service.GetChatById(id));
-        }
-
-       
-        [HttpPost(Chats.CreatePrivate)]
-        public async Task<IActionResult> CreatePrivate([FromBody] CreatePrivateChatDto dto)
-        {
-            return Response(await _service.CreatePrivateChat(dto.Fan1Id, dto.Fan2Id));
-        }
-
-        [HttpPost(Chats.CreateGroup)]
-        public async Task<IActionResult> CreateGroup([FromBody] CreateGroupChatDto dto)
-        {
-            return Response(await _service.CreateGroupChat(dto.Title, dto.MemberIds));
+            return Response(await _service.GetChatByIdAsync(id));
         }
 
         
-        [HttpPost(Chats.CreateMatch)]
+        [HttpPost("create-private")]
+        public async Task<IActionResult> CreatePrivate([FromBody] CreatePrivateChatDto dto)
+        {
+            return Response(await _service.CreatePrivateChatAsync(dto));
+        }
+
+        [HttpPost("create-group")]
+        public async Task<IActionResult> CreateGroup([FromBody] CreateGroupChatDto dto)
+        {
+            return Response(await _service.CreateGroupChatAsync(dto));
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("create-match/{matchId:int}")]
         public async Task<IActionResult> CreateMatchChat([FromRoute] int matchId)
         {
-            return Response(await _service.CreateMatchChat(matchId));
+            return Response(await _service.CreateMatchChatAsync(matchId));
         }
                
     }

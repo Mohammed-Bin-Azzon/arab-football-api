@@ -1,4 +1,8 @@
-﻿using ArabFootball.Api.Features.Enums;
+﻿using ArabFootball.Api.Features.Chats.ChatDto;
+using ArabFootball.Api.Features.Enums;
+using ArabFootball.Api.Features.Fans.Dtos;
+using ArabFootball.Api.Features.Matchs.MatchDto;
+using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Shared.Helpers;
@@ -18,30 +22,44 @@ namespace ArabFootball.Api.Features.Chats
         }
 
 
-        public async Task<ApiResponse<PaginatedResult<Chat>>> GetAllChats(int pageNumber = 1, int pageSize = 10, string? search = null)
+        public async Task<ApiResponse<PaginatedResult<Chat>>> GetAllChatsAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            var chats = await _context.Chats.
-            OrderByDescending(m => m.Members)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize <= 0 ? 10 : pageSize;
 
-            var totalCount = chats.Count();
+            var query = _context.Chats.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(c =>
+                    EF.Functions.Like(c.Title, $"%{search}%") ||
+                    EF.Functions.Like(c.Match.HomeTeam, $"%{search}%") ||
+                    EF.Functions.Like(c.Match.AwayTeam, $"%{search}%") ||
+                    EF.Functions.Like(c.Match.League, $"%{search}%"));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var chats = await query
+                    .OrderByDescending(c => c.ChatId)
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+
 
             var paginated = PaginatedResult<Chat>.Success(chats, totalCount, pageNumber, pageSize);
 
-            if (chats == null)
-                return ApiResponse<PaginatedResult<Chat>>.Error(HttpStatusCode.NotFound, "There are no Chats");
+            string message = chats.Any() ? "Get all Chats" : "No Chats found";
 
-            return ApiResponse<PaginatedResult<Chat>>.Success(paginated, "Get all chats");
+            return ApiResponse<PaginatedResult<Chat>>.Success(paginated, message);
 
         }
 
-        public async Task<ApiResponse<Chat>> GetChatById(int chatId)
+        public async Task<ApiResponse<Chat>> GetChatByIdAsync(int chatId)
         {
             var chat = await _context.Chats
-                .Include(c => c.Members)
-                .Include(c => c.Messages)
+                
                 .FirstOrDefaultAsync(c => c.ChatId == chatId);
 
             if (chat == null)
@@ -50,21 +68,31 @@ namespace ArabFootball.Api.Features.Chats
             return ApiResponse<Chat>.Success(chat, "Get chat");
         }
 
-        public async Task<ApiResponse<Chat>> CreatePrivateChat(int fan1Id, int fan2Id)
+        public async Task<ApiResponse<ChatResponseDto>> CreatePrivateChatAsync(CreatePrivateChatDto dto)
         {
-            if (fan1Id == fan2Id)
-                return ApiResponse<Chat>.Error(HttpStatusCode.BadRequest, "Cannot create chat with yourself");
+            if (dto.Fan1Id == dto.Fan2Id)
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Cannot create chat with yourself");
+
+            var f1 = await _context.Fans.FirstOrDefaultAsync(f => f.Id == dto.Fan1Id);
+
+            if (f1 == null)
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Fan 1 is not exeist");
+
+            var f2 = await _context.Fans.FirstOrDefaultAsync(f => f.Id == dto.Fan2Id);
+
+            if (f2 == null)
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Fan 2 is not exeist");
 
             var existingChat = await _context.Chats
                 .Where(c => c.ChatType == ChatType.Private)
                 .Where(c => c.Members.Count == 2)
                 .FirstOrDefaultAsync(c =>
-                    c.Members.Any(m => m.FanId == fan1Id) &&
-                    c.Members.Any(m => m.FanId == fan2Id)
+                    c.Members.Any(m => m.FanId == dto.Fan1Id) &&
+                    c.Members.Any(m => m.FanId == dto.Fan2Id)
                 );
 
             if (existingChat != null)
-                return ApiResponse<Chat>.Error(HttpStatusCode.BadRequest, "Chat is already existing");
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Chat is already existing");
 
             var chat = new Chat
             {
@@ -74,38 +102,48 @@ namespace ArabFootball.Api.Features.Chats
             };
             
 
-
-
-            chat.Members.Add(new ChatMember { FanId = fan1Id });
-            chat.Members.Add(new ChatMember { FanId = fan2Id });
+            chat.Members.Add(new ChatMember { FanId = dto.Fan1Id });
+            chat.Members.Add(new ChatMember { FanId = dto.Fan2Id });
 
             _context.Chats.Add(chat);
                         
             await _context.SaveChangesAsync();
 
-            return ApiResponse<Chat>.Success(chat,"Chat Created");
+            var response = new ChatResponseDto
+            {
+                Id = chat.ChatId,
+                ChatType = chat.ChatType,
+                CreatedAt = chat.CreatedAt
+            };
+            return ApiResponse<ChatResponseDto>.Success(response,"Chat Created");
         }
 
 
-        public async Task<ApiResponse<Chat>> CreateGroupChat(string title, List<int> memberIds)
+        public async Task<ApiResponse<ChatResponseDto>> CreateGroupChatAsync(CreateGroupChatDto dto)
         {
-            if (string.IsNullOrEmpty(title))
-                return ApiResponse<Chat>.Error(HttpStatusCode.BadRequest, "Title is required");
+            if (string.IsNullOrEmpty(dto.Title))
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Title is required");
 
 
-            if (memberIds == null || memberIds.Count < 2)
-                return ApiResponse<Chat>.Error(HttpStatusCode.BadRequest, "Group chat must have at least 2 members");
+            if (dto.MemberIds == null || dto.MemberIds.Count < 2)
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Group chat must have at least 2 members");
 
+            foreach (var id in dto.MemberIds.Distinct())
+            {
+                var member = await _context.Fans.FirstOrDefaultAsync(f => f.Id == id);
+                if (member == null)
+                    return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.NotFound, $"Fan with id {id} not exesit");
+            }
 
             var chat = new Chat
             {
                 ChatType = ChatType.Group,
-                Title = title,
+                Title = dto.Title,
                 CreatedAt = DateTime.UtcNow,
                 Members = new List<ChatMember>()
             };
 
-            foreach (var id in memberIds.Distinct())
+            foreach (var id in dto.MemberIds.Distinct())
             {
                 chat.Members.Add(new ChatMember
                 {
@@ -117,34 +155,52 @@ namespace ArabFootball.Api.Features.Chats
             _context.Chats.Add(chat);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<Chat>.Success(chat, "Chat Created");
+            var response = new ChatResponseDto
+            {
+                Id = chat.ChatId,
+                Title = chat.Title,
+                ChatType = chat.ChatType,
+                CreatedAt = chat.CreatedAt
+            };
+
+            return ApiResponse<ChatResponseDto>.Success(response, "Chat Created");
         }
 
-        public async Task<ApiResponse<Chat>> CreateMatchChat(int matchId)
+        public async Task<ApiResponse<ChatResponseDto>> CreateMatchChatAsync(int matchId)
         {
             var matchExists = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
 
-            if (matchExists != null)
-                return ApiResponse<Chat>.Error(HttpStatusCode.BadRequest, "Match not found");
+            if (matchExists == null)
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Match not found");
 
             var existingChat = await _context.Chats
                 .FirstOrDefaultAsync(c => c.MatchId == matchId);
 
             if (existingChat != null)
-                return ApiResponse<Chat>.Error(HttpStatusCode.BadRequest, "Chat is already existing");
-            
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "Chat is already existing");
+
             var chat = new Chat
             {
                 ChatType = ChatType.Match,
                 MatchId = matchId,
-                Title = matchExists.HomeTeam + "VS" + matchExists.AwayTeam,
+                Title = matchExists.HomeTeam + " VS " + matchExists.AwayTeam,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Chats.Add(chat);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<Chat>.Success(chat, "Chat Created");
+            var response = new ChatResponseDto
+            {
+                Id = chat.ChatId,
+                Title = chat.Title,
+                ChatType = chat.ChatType,
+                CreatedAt = chat.CreatedAt
+            };
+
+            return ApiResponse<ChatResponseDto>.Success(response, "Chat Created");
+           
+           
         }
 
     }

@@ -127,7 +127,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
-
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapHub<MessageHub>("/chatHub");
