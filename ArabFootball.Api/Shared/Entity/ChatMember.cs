@@ -6,12 +6,8 @@ namespace ArabFootball.Api.Shared.Entity
     {
         [Key]
         public int Id { get; set; }
-
-        // FK → Chat
         public int ChatId { get; set; }
         public Chat Chat { get; set; }
-
-        // FK → Fan (User)
         public int FanId { get; set; }
         public Fan Fan { get; set; }
 

@@ -1,61 +1,70 @@
 ﻿using api_training.Controllers;
 using ArabFootball.Api.Features.ChatMembers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using static ArabFootball.Shared.Helpers.Routing;
+using System.Threading;
 
 namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ChatMembersController : AppControllerBase
     {
         private readonly IChatMemberService _chatMemberService;
 
         public ChatMembersController(IChatMemberService chatMemberService)
-        { 
+        {
             _chatMemberService = chatMemberService;
         }
 
-        [HttpGet(ChatMembers.GetAll)]
+        [HttpGet]
         public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10, string? search = null)
         {
-            return Response(await _chatMemberService.GetAllChatMembers(pageNumber, pageSize, search));
+            return Response(await _chatMemberService.GetAllChatMembersAsync(pageNumber, pageSize, search));
         }
 
-        [HttpPut(ChatMembers.MuteMember)]
-        public async Task<IActionResult> MuteMember([FromRoute] int chatid, [FromRoute] int fanid)
+        [HttpGet("chats/{chatId:int}")]
+        public async Task<IActionResult> GetByChatId(int chatId)
         {
-            return Response(await _chatMemberService.MuteMember(chatid, fanid));
+            return Response(await _chatMemberService.GetChatMembersByChatIdAsync(chatId));
         }
 
-        [HttpPut(ChatMembers.UnmuteMember)]
-        public async Task<IActionResult> UnmuteMember([FromRoute] int chatId, [FromRoute] int fanId)
+        [HttpPatch("{memberId:int}/mute")]
+        public async Task<IActionResult> MuteMember([FromRoute] int memberId)
         {
-            return Response(await _chatMemberService.UnmuteMember(chatId, fanId));
+            return Response(await _chatMemberService.MuteMemberAsync(memberId));
         }
 
-        [HttpPut(ChatMembers.MakeModerator)]
-        public async Task<IActionResult> MakeModerator([FromRoute] int chatId, [FromRoute] int fanId)
+        [HttpPatch("{memberId:int}/unmute")]
+        public async Task<IActionResult> UnmuteMember([FromRoute] int memberId)
         {
-            return Response(await _chatMemberService.MakeModerator(chatId, fanId));
-        }
-        [HttpPut(ChatMembers.RevokeModerator)]
-        public async Task<IActionResult> RevokeModerator([FromRoute] int chatId, [FromRoute] int fanId)
-        {
-            return Response(await _chatMemberService.RevokeModerator(chatId, fanId));
+            return Response(await _chatMemberService.UnmuteMemberAsync(memberId));
         }
 
-        [HttpPut(ChatMembers.JoinChat)]
+        [HttpPatch("{memberId:int}/make-moderator")]
+        public async Task<IActionResult> MakeModerator([FromRoute] int memberId)
+        {
+            return Response(await _chatMemberService.MakeModeratorAsync(memberId));
+        }
+
+        [HttpPatch("{memberId:int}/revoke-moderator")]
+        public async Task<IActionResult> RevokeModerator([FromRoute] int memberId)
+        {
+            return Response(await _chatMemberService.RevokeModeratorAsync(memberId));
+        }
+
+        [HttpPost("chats/{chatId:int}/members/{fanId:int}/join")]
         public async Task<IActionResult> JoinChat([FromRoute] int chatId, [FromRoute] int fanId)
         {
-            return Response(await _chatMemberService.JoinChat(chatId, fanId));
+            return Response(await _chatMemberService.JoinChatAsync(chatId, fanId));
         }
 
-        [HttpPut(ChatMembers.LeaveChat)]
+        [HttpDelete("chats/{chatId:int}/members/{fanId:int}/leave")]
         public async Task<IActionResult> LeaveChat([FromRoute] int chatId, [FromRoute] int fanId)
         {
-            return Response(await _chatMemberService.LeaveChat(chatId, fanId));
+            return Response(await _chatMemberService.LeaveChatAsync(chatId, fanId));
         }
 
     }
