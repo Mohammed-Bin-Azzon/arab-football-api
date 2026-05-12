@@ -54,7 +54,7 @@ namespace ArabFootball.Api.Features.Matchs
 
             var paginated = PaginatedResult<MatchDetailsDto>.Success(matches, totalCount, pageNumber, pageSize);
 
-            string message = matches.Any() ? "Get all matches" : "No matches found";
+            string message = matches.Any() ? "جميع المباريات" : "لا توجد مباريات";
 
             return ApiResponse<PaginatedResult<MatchDetailsDto>>.Success(paginated, message);
         }

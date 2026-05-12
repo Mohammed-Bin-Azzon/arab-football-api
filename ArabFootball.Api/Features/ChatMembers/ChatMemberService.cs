@@ -38,7 +38,7 @@ namespace ArabFootball.Api.Features.ChatMembers
 
             var paginated = PaginatedResult<ChatMember>.Success(chatmembers, totalCount, pageNumber, pageSize);
 
-            string message = chatmembers.Any() ? "Get all Chat Members" : "There is on chat member";
+            string message = chatmembers.Any() ? " جميع اعضاء المحادثة" : "لا يوجد هناك اعضاء في المحادثة";
 
             return ApiResponse<PaginatedResult<ChatMember>>.Success(paginated, message);
                         
@@ -48,7 +48,7 @@ namespace ArabFootball.Api.Features.ChatMembers
         {
             var chat = await _context.Chats.FirstOrDefaultAsync(c => c.ChatId == chatId);
             if (chat == null)
-                return ApiResponse<List<ChatMemberResponesDto>>.Error(HttpStatusCode.NotFound, "Chat not found");
+                return ApiResponse<List<ChatMemberResponesDto>>.Error(HttpStatusCode.NotFound, "المحادثة غير موجودة");
 
             var chatMembers = await _context.ChatMembers
                                          .Where(c => c.ChatId == chatId)
@@ -63,7 +63,7 @@ namespace ArabFootball.Api.Features.ChatMembers
                                          })
                                          .ToListAsync();
 
-            var message = chatMembers.Count() > 0 ? "All Chat members" : "There is no members";
+            var message = chatMembers.Count() > 0 ? "حمبع اعضاء المحادثة" : "لا يوجد هناك اعضاء في المحادثة";
 
             return ApiResponse<List<ChatMemberResponesDto>>.Success(chatMembers, message);
 
@@ -75,71 +75,71 @@ namespace ArabFootball.Api.Features.ChatMembers
             var member = await _context.ChatMembers.FirstOrDefaultAsync(c=> c.Id == memberId);
 
             if (member == null) 
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound , "Member not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound , "العضو غير موحود");
 
             if (member.IsMuted == true)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "Member muted already");
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "العضو على الصامت بالفعل");
 
             member.IsMuted = true;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true,"Memer Muted");
+            return ApiResponse<bool>.Success(true,"تم كتم صوت العضو");
         }
 
         public async Task<ApiResponse<bool>> UnmuteMemberAsync(int memberId)
         {
             var member = await _context.ChatMembers.FirstOrDefaultAsync(c => c.Id == memberId);
             if (member == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Member not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "العضو غير موحود");
 
             if (member.IsMuted == false)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "Member unmuted already");
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "العضو ليس على الصامت بالفعل");
 
             member.IsMuted = false;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Member Unmuted");
+            return ApiResponse<bool>.Success(true, "تم الغاء كتم صوت العضو");
         }
 
         public async Task<ApiResponse<bool>> MakeModeratorAsync(int memberId)
         {
             var member = await _context.ChatMembers.FirstOrDefaultAsync(c => c.Id == memberId);
             if (member == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Member not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "العضو غير موحود");
 
             if (member.IsModerator == true)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "Member is Moderator already");
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "العضو مشرف بالفعل");
 
             member.IsModerator = true;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Member is Moderator now"); 
+            return ApiResponse<bool>.Success(true, "العضو مشرف الان"); 
         }
 
         public async Task<ApiResponse<bool>> RevokeModeratorAsync(int memberId)
         {
             var member = await _context.ChatMembers.FirstOrDefaultAsync(c => c.Id == memberId);
             if (member == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Member not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "العضو غير موحود");
 
             if (member.IsModerator == false)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "Member is Unmoderator already");
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "العضو ليس مشرف بالفعل");
 
             // منع إزالة آخر Moderator
             var moderatorsCount = await _context.ChatMembers
                 .CountAsync(x => x.ChatId == member.ChatId && x.IsModerator);
 
             if (moderatorsCount == 1)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "Cannot remove last moderator");
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "لا يمكن  ازالة اخر مشرف");
 
             member.IsModerator= false;
             
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Member is Unmoderator now");
+            return ApiResponse<bool>.Success(true, "العضو ليس مشرف الان");
         }
 
 
@@ -147,15 +147,15 @@ namespace ArabFootball.Api.Features.ChatMembers
         {
             var chatExists = await _context.Chats.AnyAsync(c => c.ChatId == chatId);
             if (!chatExists)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Chat not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "المحادثة غير موجودة");
 
             var exists = await _context.ChatMembers.AnyAsync(x => x.ChatId == chatId && x.FanId == fanId);
             if (exists)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest,"You already in chat");
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest,"انت مضاف في المحادثة بالفعل");
 
             var fan = await _context.Fans.AnyAsync(x => x.Id == fanId);
             if (!fan)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound,"Fan not foud");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound,"المشجع غير موجود");
 
             var member = new ChatMember
             {
@@ -167,18 +167,18 @@ namespace ArabFootball.Api.Features.ChatMembers
             _context.ChatMembers.Add(member);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Member added");
+            return ApiResponse<bool>.Success(true, "تم اضافة المشجع الى المحادثة");
         }
 
         public async Task<ApiResponse<bool>> LeaveChatAsync(int chatId, int fanId)
         {
             var chatExists = await _context.Chats.AnyAsync(c => c.ChatId == chatId);
             if (!chatExists)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Chat not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "المحادثة غير موجودة");
 
             var member = await _context.ChatMembers.FirstOrDefaultAsync(x => x.ChatId == chatId && x.FanId == fanId);
             if (member == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Member not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "العضو غير موحود");
 
             // منع حذف آخر Moderator
             if (member.IsModerator)
@@ -187,13 +187,13 @@ namespace ArabFootball.Api.Features.ChatMembers
                     .CountAsync(x => x.ChatId == chatId && x.IsModerator);
 
                 if (moderatorsCount == 1)
-                    return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "Cannot remove last moderator");
+                    return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "لايمكن  حذف اخر مشرف");
             }
 
             _context.ChatMembers.Remove(member);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Member removed");
+            return ApiResponse<bool>.Success(true, "تم حذف العضو من المحادثة");
         }
 
     }

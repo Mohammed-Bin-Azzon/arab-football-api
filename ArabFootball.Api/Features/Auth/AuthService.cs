@@ -26,81 +26,65 @@ namespace ArabFootball.Api.Features.Auth
 
         public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
         {
-            try
-            {
-                var username = dto.Username.Trim();
-                var email = dto.Email.Trim().ToLowerInvariant();
+            var username = dto.Username.Trim();
+            var email = dto.Email.Trim().ToLowerInvariant();
 
-                if (await _context.Users.AnyAsync(u => u.Username == username))
-                {
-                    return ApiResponse<AuthResponseDto>.Error(
-                        HttpStatusCode.BadRequest,
-                        "اسم المستخدم مستخدم بالفعل.");
-                }
-
-                if (await _context.Users.AnyAsync(u => u.Email == email))
-                {
-                    return ApiResponse<AuthResponseDto>.Error(
-                        HttpStatusCode.BadRequest,
-                        "البريد الإلكتروني مستخدم بالفعل.");
-                }
-
-                var fan = new Fan
-                {
-                    Username = username,
-                    Email = email,
-                    PasswordHash = HashPassword(dto.Password),
-                    Role = UserRole.Fan,
-                    DisplayName = username,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await _context.Fans.AddAsync(fan);
-                await _context.SaveChangesAsync();
-
-                var authResponse = BuildAuthResponse(fan);
-
-                return ApiResponse<AuthResponseDto>.Success(
-                    authResponse,
-                    "تم إنشاء الحساب بنجاح.");
-            }
-            catch (Exception)
+            if (await _context.Users.AnyAsync(u => u.Username == username))
             {
                 return ApiResponse<AuthResponseDto>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء إنشاء الحساب.");
+                    HttpStatusCode.BadRequest,
+                    "اسم المستخدم مستخدم بالفعل.");
             }
+
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+            {
+                return ApiResponse<AuthResponseDto>.Error(
+                    HttpStatusCode.BadRequest,
+                    "البريد الإلكتروني مستخدم بالفعل.");
+            }
+
+            var fan = new Fan
+            {
+                Username = username,
+                Email = email,
+                PasswordHash = HashPassword(dto.Password),
+                Role = UserRole.Fan,
+                DisplayName = username,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Fans.AddAsync(fan);
+            await _context.SaveChangesAsync();
+
+            var authResponse = BuildAuthResponse(fan);
+
+            return ApiResponse<AuthResponseDto>.Success(
+                authResponse,
+                "تم إنشاء الحساب بنجاح.");
+
         }
 
         public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginDto dto)
         {
-            try
-            {
-                var email = dto.Email.Trim().ToLowerInvariant();
+            var email = dto.Email.Trim().ToLowerInvariant();
 
-                var user = await _context.Users
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Email == email);
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Email == email);
 
-                if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
-                {
-                    return ApiResponse<AuthResponseDto>.Error(
-                        HttpStatusCode.Unauthorized,
-                        "بيانات الدخول غير صحيحة.");
-                }
-
-                var authResponse = BuildAuthResponse(user);
-
-                return ApiResponse<AuthResponseDto>.Success(
-                    authResponse,
-                    "تم تسجيل الدخول بنجاح.");
-            }
-            catch (Exception)
+            if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
             {
                 return ApiResponse<AuthResponseDto>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء تسجيل الدخول.");
+                    HttpStatusCode.Unauthorized,
+                    "بيانات الدخول غير صحيحة.");
             }
+
+            var authResponse = BuildAuthResponse(user);
+
+            return ApiResponse<AuthResponseDto>.Success(
+                authResponse,
+                "تم تسجيل الدخول بنجاح.");
+
         }
 
         public Task<ApiResponse<object>> LogoutAsync()

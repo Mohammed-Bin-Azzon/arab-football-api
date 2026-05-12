@@ -19,47 +19,40 @@ namespace ArabFootball.Api.Features.Messages
 
         public async Task<ApiResponse<Message>> SendMessageAsync(SendMessageDto dto, int senderId)
         {
-            // 1. تحقق من الشات
-            var chat = await _context.Chats
-                .FirstOrDefaultAsync(c => c.ChatId == dto.ChatId);
+            var chat = await _context.Chats.AnyAsync(c => c.ChatId == dto.ChatId);
 
-            if (chat == null)
-                return ApiResponse<Message>.Error(HttpStatusCode.NotFound, "Chat not found");
+            if (!chat)
+                return ApiResponse<Message>.Error(HttpStatusCode.NotFound, "المحادة غير موجودة");
 
-            // 2. تحقق من العضوية
-            var member = await _context.ChatMembers
-                .FirstOrDefaultAsync(x => x.ChatId == dto.ChatId && x.FanId == senderId);
+            var member = await _context.ChatMembers.FirstOrDefaultAsync(x => x.ChatId == dto.ChatId && x.FanId == senderId);
 
             if (member == null)
-                return ApiResponse<Message>.Error(HttpStatusCode.Forbidden, "User is not a member of this chat");
+                return ApiResponse<Message>.Error(HttpStatusCode.Forbidden, "انت ليست عضوا في هذة المحادثة");
 
-            // 3. تحقق من mute
             if (member.IsMuted)
-                return ApiResponse<Message>.Error(HttpStatusCode.Forbidden, "User is muted");
+                return ApiResponse<Message>.Error(HttpStatusCode.Forbidden, "انت في وضع كتم الصوت");
 
-            // 4. Validation حسب نوع الرسالة 🔥
             switch (dto.MessageType)
             {
                 case MessageType.Text:
                     if (string.IsNullOrWhiteSpace(dto.Content))
-                        return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "Text content is required");
+                        return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "المحتوى النصي مطلوب");
                     break;
 
                 case MessageType.Image:
                     if (string.IsNullOrWhiteSpace(dto.AttachmentUrl))
-                        return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "Image URL is required");
+                        return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "رابط الصورة مطلوب");
                     break;
 
                 case MessageType.Video:
                     if (string.IsNullOrWhiteSpace(dto.AttachmentUrl))
-                        return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "Video URL is required");
+                        return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "رابط الفيديو مطلوب");
                     break;
 
                 case MessageType.System:
-                    return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "Cannot send system message manually");
+                    return ApiResponse<Message>.Error(HttpStatusCode.BadRequest, "لا يمكن ارسال رسالة النظام");
             }
 
-            // 5. إنشاء الرسالة
             var message = new Message
             {
                 ChatId = dto.ChatId,
@@ -71,11 +64,10 @@ namespace ArabFootball.Api.Features.Messages
                 IsRead = false
             };
 
-            // 6. حفظ
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<Message>.Success(message, "Message sent");
+            return ApiResponse<Message>.Success(message, "تم ارسال الرسالة");
         }
 
 
@@ -85,14 +77,14 @@ namespace ArabFootball.Api.Features.Messages
                 .AnyAsync(c => c.ChatId == chatId);
 
             if (!exists)
-                return ApiResponse<List<Message>>.Error(HttpStatusCode.NotFound, "Chat not found");
+                return ApiResponse<List<Message>>.Error(HttpStatusCode.NotFound, "المحادثة غير موجودة");
 
             var messages = await _context.Messages
                 .Where(m => m.ChatId == chatId)
                 .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
 
-            return ApiResponse<List<Message>>.Success(messages, "Messages retrieved");
+            return ApiResponse<List<Message>>.Success(messages, "تم استلام الرسالة");
         }
 
 
@@ -102,16 +94,16 @@ namespace ArabFootball.Api.Features.Messages
                 .FirstOrDefaultAsync(m => m.MessageId == messageId);
 
             if (message == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Message not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "الرسالة غير موجودة");
 
             // فقط المرسل يقدر يحذف (مؤقتًا)
             if (message.SenderId != requesterId)
-                return ApiResponse<bool>.Error(HttpStatusCode.Forbidden, "Not allowed");
+                return ApiResponse<bool>.Error(HttpStatusCode.Forbidden, "انت غير مسموح لك بحذف هذة الرسالة");
 
             _context.Messages.Remove(message);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Message deleted");
+            return ApiResponse<bool>.Success(true, "تم محذف الرسالة");
         }
 
 
@@ -121,13 +113,13 @@ namespace ArabFootball.Api.Features.Messages
                 .FirstOrDefaultAsync(m => m.MessageId == messageId);
 
             if (message == null)
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "Message not found");
+                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "الرسالة غير موجودة");
 
             message.IsRead = true;
 
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "Message marked as read");
+            return ApiResponse<bool>.Success(true, "تم قراءة الرسالة");
         }
 
         public async Task<Message?> CreateSystemMessageAsync(int chatId, string content)

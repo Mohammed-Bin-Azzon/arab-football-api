@@ -109,66 +109,51 @@ namespace ArabFootball.Api.Features.Posts.Services
 
         public async Task<ApiResponse<List<PostDto>>> GetHomeFeedAsync()
         {
-            try
-            {
-                var posts = await _context.Posts
-                    .AsNoTracking()
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new PostDto
-                    {
-                        Id = p.Id,
-                        Caption = p.Caption,
-                        MediaUrl = p.MediaUrl,
-                        MediaType = p.MediaType.ToString(),
-                        CreatedAt = p.CreatedAt,
-                        LikeCount = p.LikeCount,
-                        CommentCount = p.CommentCount,
-                        BookmarkCount = p.BookmarkCount,
-                        FanId = p.FanId,
-                        FanDisplayName = p.Fan.DisplayName,
-                        FanProfilePicUrl = p.Fan.ProfilePicUrl
-                    })
-                    .ToListAsync();
+            
+            var posts = await _context.Posts
+                .AsNoTracking()
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new PostDto
+                {
+                    Id = p.Id,
+                    Caption = p.Caption,
+                    MediaUrl = p.MediaUrl,
+                    MediaType = p.MediaType.ToString(),
+                    CreatedAt = p.CreatedAt,
+                    LikeCount = p.LikeCount,
+                    CommentCount = p.CommentCount,
+                    BookmarkCount = p.BookmarkCount,
+                    FanId = p.FanId,
+                    FanDisplayName = p.Fan.DisplayName,
+                    FanProfilePicUrl = p.Fan.ProfilePicUrl
+                })
+                .ToListAsync();
 
-                return ApiResponse<List<PostDto>>.Success(posts, "تم جلب المنشورات بنجاح.");
-            }
-            catch (Exception)
-            {
-                return ApiResponse<List<PostDto>>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء جلب المنشورات.");
-            }
+            return ApiResponse<List<PostDto>>.Success(posts, "تم جلب المنشورات بنجاح.");
         }
 
         public async Task<ApiResponse<object>> DeletePostAsync(int postId, int fanId)
         {
-            try
-            {
-                var post = await _context.Posts
-                    .FirstOrDefaultAsync(p => p.Id == postId && p.FanId == fanId);
+            
+            var post = await _context.Posts
+                .FirstOrDefaultAsync(p => p.Id == postId && p.FanId == fanId);
 
-                if (post == null)
-                {
-                    return ApiResponse<object>.Error(
-                        HttpStatusCode.NotFound,
-                        "المنشور غير موجود أو لا تملك صلاحية حذفه.");
-                }
-
-                var mediaPath = post.MediaUrl;
-
-                _context.Posts.Remove(post);
-                await _context.SaveChangesAsync();
-
-                _fileService.DeleteFile(mediaPath);
-
-                return ApiResponse<object>.Success(null, "تم حذف المنشور بنجاح.");
-            }
-            catch (Exception)
+            if (post == null)
             {
                 return ApiResponse<object>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء حذف المنشور.");
+                    HttpStatusCode.NotFound,
+                    "المنشور غير موجود أو لا تملك صلاحية حذفه.");
             }
+
+            var mediaPath = post.MediaUrl;
+
+            _context.Posts.Remove(post);
+            await _context.SaveChangesAsync();
+
+            _fileService.DeleteFile(mediaPath);
+
+            return ApiResponse<object>.Success(null, "تم حذف المنشور بنجاح.");
+            
         }
     }
 }

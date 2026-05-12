@@ -30,12 +30,10 @@ namespace ArabFootball.Api.Features.Messages
 
         public async Task SendMessage(SendMessageDto dto)
         {
-            // 1. الحصول على UserId من JWT
             int userId = int.Parse(Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value);
-            // 2. إرسال إلى Service
+
             var result = await _messageService.SendMessageAsync(dto, userId);
 
-            // 3. في حال الخطأ
             if (!result.IsSuccess)
             {
                 await Clients.Caller.SendAsync("Error", result.Message);
@@ -44,7 +42,6 @@ namespace ArabFootball.Api.Features.Messages
 
             var message = result.Data;
 
-            // 4. Broadcast
             await Clients.Group(dto.ChatId.ToString())
                 .SendAsync("ReceiveMessage", new
                 {

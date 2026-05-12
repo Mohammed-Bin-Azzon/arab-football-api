@@ -101,42 +101,35 @@ namespace ArabFootball.Api.Features.Comments
 
         public async Task<ApiResponse<List<CommentDto>>> GetPostCommentsAsync(int postId)
         {
-            try
-            {
-                var postExists = await _context.Posts
-                    .AsNoTracking()
-                    .AnyAsync(p => p.Id == postId);
+            
+            var postExists = await _context.Posts
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == postId);
 
-                if (!postExists)
-                {
-                    return ApiResponse<List<CommentDto>>.Error(
-                        HttpStatusCode.NotFound,
-                        "المنشور غير موجود.");
-                }
-
-                var comments = await _context.Comments
-                    .AsNoTracking()
-                    .Where(c => c.PostId == postId)
-                    .OrderByDescending(c => c.CreatedAt)
-                    .Select(c => new CommentDto
-                    {
-                        Id = c.Id,
-                        Content = c.Content,
-                        CreatedAt = c.CreatedAt,
-                        FanId = c.FanId,
-                        FanName = string.IsNullOrWhiteSpace(c.Fan.DisplayName) ? c.Fan.Username : c.Fan.DisplayName,
-                        FanProfilePic = c.Fan.ProfilePicUrl
-                    })
-                    .ToListAsync();
-
-                return ApiResponse<List<CommentDto>>.Success(comments, "تم جلب التعليقات بنجاح.");
-            }
-            catch (Exception)
+            if (!postExists)
             {
                 return ApiResponse<List<CommentDto>>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء جلب التعليقات.");
+                    HttpStatusCode.NotFound,
+                    "المنشور غير موجود.");
             }
+
+            var comments = await _context.Comments
+                .AsNoTracking()
+                .Where(c => c.PostId == postId)
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new CommentDto
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    FanId = c.FanId,
+                    FanName = string.IsNullOrWhiteSpace(c.Fan.DisplayName) ? c.Fan.Username : c.Fan.DisplayName,
+                    FanProfilePic = c.Fan.ProfilePicUrl
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<CommentDto>>.Success(comments, "تم جلب التعليقات بنجاح.");
+           
         }
     }
 }

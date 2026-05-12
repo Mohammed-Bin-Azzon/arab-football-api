@@ -133,34 +133,27 @@ namespace ArabFootball.Api.Features.Predictions
 
         public async Task<ApiResponse<List<PredictionDto>>> GetMyPredictionsAsync(int fanId)
         {
-            try
-            {
-                var predictions = await _context.Predictions
-                    .AsNoTracking()
-                    .Where(p => p.FanId == fanId)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new PredictionDto
-                    {
-                        Id = p.Id,
-                        MatchId = p.MatchId,
-                        PredictedHomeScore = p.PredictedHomeScore,
-                        PredictedAwayScore = p.PredictedAwayScore,
-                        IsProcessed = p.IsProcessed,
-                        PointsEarned = p.PointsEarned,
-                        CreatedAt = p.CreatedAt
-                    })
-                    .ToListAsync();
+            
+            var predictions = await _context.Predictions
+                .AsNoTracking()
+                .Where(p => p.FanId == fanId)
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new PredictionDto
+                {
+                    Id = p.Id,
+                    MatchId = p.MatchId,
+                    PredictedHomeScore = p.PredictedHomeScore,
+                    PredictedAwayScore = p.PredictedAwayScore,
+                    IsProcessed = p.IsProcessed,
+                    PointsEarned = p.PointsEarned,
+                    CreatedAt = p.CreatedAt
+                })
+                .ToListAsync();
 
-                return ApiResponse<List<PredictionDto>>.Success(
-                    predictions,
-                    "تم جلب توقعاتك بنجاح.");
-            }
-            catch (Exception)
-            {
-                return ApiResponse<List<PredictionDto>>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء جلب التوقعات.");
-            }
+            return ApiResponse<List<PredictionDto>>.Success(
+                predictions,
+                "تم جلب توقعاتك بنجاح.");
+            
         }
     }
 }

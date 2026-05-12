@@ -22,56 +22,49 @@ namespace ArabFootball.Api.Features.Fans
 
         public async Task<ApiResponse<FanProfileDto>> GetProfileAsync(int fanId)
         {
-            try
-            {
-                var profile = await _context.Fans
-                    .AsNoTracking()
-                    .Where(f => f.Id == fanId)
-                    .Select(f => new FanProfileDto
-                    {
-                        Id = f.Id,
-                        Username = f.Username,
-                        DisplayName = f.DisplayName,
-                        Bio = f.Bio,
-                        ProfilePicUrl = f.ProfilePicUrl,
-                        FollowersCount = f.FollowersCount,
-                        FollowingCount = f.FollowingCount,
-                        Points = f.Points,
-                        Posts = f.Posts
-                            .OrderByDescending(p => p.CreatedAt)
-                            .Select(p => new PostDto
-                            {
-                                Id = p.Id,
-                                Caption = p.Caption,
-                                MediaUrl = p.MediaUrl,
-                                MediaType = p.MediaType.ToString(),
-                                CreatedAt = p.CreatedAt,
-                                LikeCount = p.LikeCount,
-                                CommentCount = p.CommentCount,
-                                BookmarkCount = p.BookmarkCount,
-                                FanId = p.FanId,
-                                FanDisplayName = f.DisplayName,
-                                FanProfilePicUrl = f.ProfilePicUrl
-                            })
-                            .ToList()
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (profile == null)
+            
+            var profile = await _context.Fans
+                .AsNoTracking()
+                .Where(f => f.Id == fanId)
+                .Select(f => new FanProfileDto
                 {
-                    return ApiResponse<FanProfileDto>.Error(
-                        HttpStatusCode.NotFound,
-                        "المشجع غير موجود.");
-                }
+                    Id = f.Id,
+                    Username = f.Username,
+                    DisplayName = f.DisplayName,
+                    Bio = f.Bio,
+                    ProfilePicUrl = f.ProfilePicUrl,
+                    FollowersCount = f.FollowersCount,
+                    FollowingCount = f.FollowingCount,
+                    Points = f.Points,
+                    Posts = f.Posts
+                        .OrderByDescending(p => p.CreatedAt)
+                        .Select(p => new PostDto
+                        {
+                            Id = p.Id,
+                            Caption = p.Caption,
+                            MediaUrl = p.MediaUrl,
+                            MediaType = p.MediaType.ToString(),
+                            CreatedAt = p.CreatedAt,
+                            LikeCount = p.LikeCount,
+                            CommentCount = p.CommentCount,
+                            BookmarkCount = p.BookmarkCount,
+                            FanId = p.FanId,
+                            FanDisplayName = f.DisplayName,
+                            FanProfilePicUrl = f.ProfilePicUrl
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
 
-                return ApiResponse<FanProfileDto>.Success(profile, "تم جلب الملف الشخصي بنجاح.");
-            }
-            catch (Exception)
+            if (profile == null)
             {
                 return ApiResponse<FanProfileDto>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء جلب الملف الشخصي.");
+                    HttpStatusCode.NotFound,
+                    "المشجع غير موجود.");
             }
+
+            return ApiResponse<FanProfileDto>.Success(profile, "تم جلب الملف الشخصي بنجاح.");
+            
         }
 
         public async Task<ApiResponse<FanProfileDto>> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
@@ -140,46 +133,39 @@ namespace ArabFootball.Api.Features.Fans
 
         public async Task<ApiResponse<List<FanProfileDto>>> SearchFansAsync(string query)
         {
-            try
+            
+            if (string.IsNullOrWhiteSpace(query))
             {
-                if (string.IsNullOrWhiteSpace(query))
+                return ApiResponse<List<FanProfileDto>>.Success(
+                    new List<FanProfileDto>(),
+                    "لا توجد نتائج لأن عبارة البحث فارغة.");
+            }
+
+            query = query.Trim();
+
+            var results = await _context.Fans
+                .AsNoTracking()
+                .Where(f =>
+                    EF.Functions.Like(f.DisplayName, $"%{query}%") ||
+                    EF.Functions.Like(f.Username, $"%{query}%"))
+                .OrderBy(f => f.DisplayName)
+                .Take(20)
+                .Select(f => new FanProfileDto
                 {
-                    return ApiResponse<List<FanProfileDto>>.Success(
-                        new List<FanProfileDto>(),
-                        "لا توجد نتائج لأن عبارة البحث فارغة.");
-                }
+                    Id = f.Id,
+                    Username = f.Username,
+                    DisplayName = f.DisplayName,
+                    Bio = f.Bio,
+                    ProfilePicUrl = f.ProfilePicUrl,
+                    FollowersCount = f.FollowersCount,
+                    FollowingCount = f.FollowingCount,
+                    Points = f.Points,
+                    Posts = new List<PostDto>()
+                })
+                .ToListAsync();
 
-                query = query.Trim();
-
-                var results = await _context.Fans
-                    .AsNoTracking()
-                    .Where(f =>
-                        EF.Functions.Like(f.DisplayName, $"%{query}%") ||
-                        EF.Functions.Like(f.Username, $"%{query}%"))
-                    .OrderBy(f => f.DisplayName)
-                    .Take(20)
-                    .Select(f => new FanProfileDto
-                    {
-                        Id = f.Id,
-                        Username = f.Username,
-                        DisplayName = f.DisplayName,
-                        Bio = f.Bio,
-                        ProfilePicUrl = f.ProfilePicUrl,
-                        FollowersCount = f.FollowersCount,
-                        FollowingCount = f.FollowingCount,
-                        Points = f.Points,
-                        Posts = new List<PostDto>()
-                    })
-                    .ToListAsync();
-
-                return ApiResponse<List<FanProfileDto>>.Success(results, "تم جلب نتائج البحث بنجاح.");
-            }
-            catch (Exception)
-            {
-                return ApiResponse<List<FanProfileDto>>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء البحث عن المشجعين.");
-            }
+            return ApiResponse<List<FanProfileDto>>.Success(results, "تم جلب نتائج البحث بنجاح.");
+           
         }
 
         public async Task<ApiResponse<object>> FollowFanAsync(int followerId, int followedFanId)
@@ -308,19 +294,11 @@ namespace ArabFootball.Api.Features.Fans
 
         public async Task<ApiResponse<bool>> IsFollowingAsync(int followerId, int followedFanId)
         {
-            try
-            {
-                var isFollowing = await _context.Follows.AnyAsync(f =>
-                    f.FollowerId == followerId && f.FollowedFanId == followedFanId);
+            var isFollowing = await _context.Follows.AnyAsync(f =>
+                f.FollowerId == followerId && f.FollowedFanId == followedFanId);
 
-                return ApiResponse<bool>.Success(isFollowing, "تم التحقق من حالة المتابعة بنجاح.");
-            }
-            catch (Exception)
-            {
-                return ApiResponse<bool>.Error(
-                    HttpStatusCode.InternalServerError,
-                    "حدث خطأ أثناء التحقق من حالة المتابعة.");
-            }
+            return ApiResponse<bool>.Success(isFollowing, "تم التحقق من حالة المتابعة بنجاح.");
+            
         }
     }
 }
