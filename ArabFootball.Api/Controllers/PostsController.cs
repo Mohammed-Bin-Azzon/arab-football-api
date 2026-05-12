@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using api_training.Controllers;
 using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Features.Posts.Services;
 using ArabFootball.Api.Shared.Helpers;

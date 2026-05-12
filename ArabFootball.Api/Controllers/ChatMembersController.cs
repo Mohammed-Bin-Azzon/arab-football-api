@@ -1,5 +1,4 @@
-﻿using api_training.Controllers;
-using ArabFootball.Api.Features.ChatMembers;
+﻿using ArabFootball.Api.Features.ChatMembers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

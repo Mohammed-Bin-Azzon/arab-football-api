@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using api_training.Controllers;
 using ArabFootball.Api.Features.Bookmarks;
 using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;

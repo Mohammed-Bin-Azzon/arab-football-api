@@ -1,10 +1,8 @@
-﻿using api_training.Controllers;
-using ArabFootball.Api.Features.Messages;
+﻿using ArabFootball.Api.Features.Messages;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using static ArabFootball.Shared.Helpers.Routing;
 
 namespace ArabFootball.Api.Controllers
 {

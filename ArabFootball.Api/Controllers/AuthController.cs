@@ -1,5 +1,4 @@
-﻿using api_training.Controllers;
-using ArabFootball.Api.Features.Auth;
+﻿using ArabFootball.Api.Features.Auth;
 using ArabFootball.Api.Features.Auth.AuthDto;
 using ArabFootball.Api.Shared.Helpers;
 using Microsoft.AspNetCore.Authorization;

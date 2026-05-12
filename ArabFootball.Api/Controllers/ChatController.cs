@@ -1,8 +1,6 @@
 ﻿using ArabFootball.Api.Features.Chats;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using api_training.Controllers;
-using static ArabFootball.Shared.Helpers.Routing;
 using ArabFootball.Api.Features.Chats.ChatDto;
 using Microsoft.AspNetCore.Authorization;
 

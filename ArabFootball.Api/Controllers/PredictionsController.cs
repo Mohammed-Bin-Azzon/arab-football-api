@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using api_training.Controllers;
 using ArabFootball.Api.Features.Predictions;
 using ArabFootball.Api.Features.Predictions.PredictionsDto;
 using ArabFootball.Api.Shared.Helpers;
