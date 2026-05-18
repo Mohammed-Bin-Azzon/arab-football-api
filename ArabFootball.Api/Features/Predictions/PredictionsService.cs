@@ -46,7 +46,7 @@ namespace ArabFootball.Api.Features.Predictions
                         "التوقعات مغلقة لهذه المباراة.");
                 }
 
-                if (DateTime.UtcNow >= match.StartTime)
+                if (SaudiTime.Now() >= match.StartTime)
                 {
                     return ApiResponse<PredictionDto>.Error(
                         HttpStatusCode.BadRequest,
@@ -92,7 +92,7 @@ namespace ArabFootball.Api.Features.Predictions
                     MatchId = dto.MatchId,
                     PredictedHomeScore = dto.HomeScore,
                     PredictedAwayScore = dto.AwayScore,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = SaudiTime.Now()
                 };
 
                 await _context.Predictions.AddAsync(prediction);
@@ -133,7 +133,6 @@ namespace ArabFootball.Api.Features.Predictions
 
         public async Task<ApiResponse<List<PredictionDto>>> GetMyPredictionsAsync(int fanId)
         {
-            
             var predictions = await _context.Predictions
                 .AsNoTracking()
                 .Where(p => p.FanId == fanId)
@@ -153,7 +152,6 @@ namespace ArabFootball.Api.Features.Predictions
             return ApiResponse<List<PredictionDto>>.Success(
                 predictions,
                 "تم جلب توقعاتك بنجاح.");
-            
         }
     }
 }

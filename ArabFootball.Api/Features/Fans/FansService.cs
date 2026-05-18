@@ -22,7 +22,6 @@ namespace ArabFootball.Api.Features.Fans
 
         public async Task<ApiResponse<FanProfileDto>> GetProfileAsync(int fanId)
         {
-            
             var profile = await _context.Fans
                 .AsNoTracking()
                 .Where(f => f.Id == fanId)
@@ -64,10 +63,9 @@ namespace ArabFootball.Api.Features.Fans
             }
 
             return ApiResponse<FanProfileDto>.Success(profile, "تم جلب الملف الشخصي بنجاح.");
-            
         }
 
-        public async Task<ApiResponse<FanProfileDto>> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
+        public async Task<ApiResponse<FanBasicProfileDto>> UpdateProfileAsync(int fanId, UpdateFanProfileDto dto)
         {
             var oldImagePath = string.Empty;
             string? newImagePath = null;
@@ -77,7 +75,7 @@ namespace ArabFootball.Api.Features.Fans
                 var fan = await _context.Fans.FirstOrDefaultAsync(f => f.Id == fanId);
                 if (fan == null)
                 {
-                    return ApiResponse<FanProfileDto>.Error(
+                    return ApiResponse<FanBasicProfileDto>.Error(
                         HttpStatusCode.NotFound,
                         "المشجع غير موجود.");
                 }
@@ -91,7 +89,9 @@ namespace ArabFootball.Api.Features.Fans
                 }
 
                 if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+                {
                     fan.DisplayName = dto.DisplayName.Trim();
+                }
 
                 fan.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
 
@@ -103,7 +103,7 @@ namespace ArabFootball.Api.Features.Fans
                     _fileService.DeleteFile(oldImagePath);
                 }
 
-                var result = new FanProfileDto
+                var result = new FanBasicProfileDto
                 {
                     Id = fan.Id,
                     Username = fan.Username,
@@ -112,11 +112,10 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = fan.ProfilePicUrl,
                     FollowersCount = fan.FollowersCount,
                     FollowingCount = fan.FollowingCount,
-                    Points = fan.Points,
-                    Posts = new List<PostDto>()
+                    Points = fan.Points
                 };
 
-                return ApiResponse<FanProfileDto>.Success(result, "تم تحديث الملف الشخصي بنجاح.");
+                return ApiResponse<FanBasicProfileDto>.Success(result, "تم تحديث الملف الشخصي بنجاح.");
             }
             catch (Exception)
             {
@@ -125,19 +124,18 @@ namespace ArabFootball.Api.Features.Fans
                     _fileService.DeleteFile(newImagePath);
                 }
 
-                return ApiResponse<FanProfileDto>.Error(
+                return ApiResponse<FanBasicProfileDto>.Error(
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تحديث الملف الشخصي.");
             }
         }
 
-        public async Task<ApiResponse<List<FanProfileDto>>> SearchFansAsync(string query)
+        public async Task<ApiResponse<List<FanBasicProfileDto>>> SearchFansAsync(string query)
         {
-            
             if (string.IsNullOrWhiteSpace(query))
             {
-                return ApiResponse<List<FanProfileDto>>.Success(
-                    new List<FanProfileDto>(),
+                return ApiResponse<List<FanBasicProfileDto>>.Success(
+                    new List<FanBasicProfileDto>(),
                     "لا توجد نتائج لأن عبارة البحث فارغة.");
             }
 
@@ -150,7 +148,7 @@ namespace ArabFootball.Api.Features.Fans
                     EF.Functions.Like(f.Username, $"%{query}%"))
                 .OrderBy(f => f.DisplayName)
                 .Take(20)
-                .Select(f => new FanProfileDto
+                .Select(f => new FanBasicProfileDto
                 {
                     Id = f.Id,
                     Username = f.Username,
@@ -159,13 +157,11 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = f.ProfilePicUrl,
                     FollowersCount = f.FollowersCount,
                     FollowingCount = f.FollowingCount,
-                    Points = f.Points,
-                    Posts = new List<PostDto>()
+                    Points = f.Points
                 })
                 .ToListAsync();
 
-            return ApiResponse<List<FanProfileDto>>.Success(results, "تم جلب نتائج البحث بنجاح.");
-           
+            return ApiResponse<List<FanBasicProfileDto>>.Success(results, "تم جلب نتائج البحث بنجاح.");
         }
 
         public async Task<ApiResponse<object>> FollowFanAsync(int followerId, int followedFanId)
@@ -298,7 +294,6 @@ namespace ArabFootball.Api.Features.Fans
                 f.FollowerId == followerId && f.FollowedFanId == followedFanId);
 
             return ApiResponse<bool>.Success(isFollowing, "تم التحقق من حالة المتابعة بنجاح.");
-            
         }
     }
 }

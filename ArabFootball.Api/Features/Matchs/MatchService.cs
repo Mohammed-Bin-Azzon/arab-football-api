@@ -35,22 +35,20 @@ namespace ArabFootball.Api.Features.Matchs
             var totalCount = await query.CountAsync();
 
             var matches = await query
-                    .OrderByDescending(m => m.Id)
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(m => new MatchDetailsDto
-                    {
-                        HomeTeam = m.HomeTeam,
-                        AwayTeam = m.AwayTeam,
-                        League = m.League,
-                        StartTime = m.StartTime,
-                        Status = m.Status,
-                        PredictionState = m.PredictionState,
-                        ChatUrl = m.ChatUrl
-                    })
-                    .ToListAsync();
-
-            
+                .OrderByDescending(m => m.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new MatchDetailsDto
+                {
+                    HomeTeam = m.HomeTeam,
+                    AwayTeam = m.AwayTeam,
+                    League = m.League,
+                    StartTime = m.StartTime,
+                    Status = m.Status,
+                    PredictionState = m.PredictionState,
+                    ChatUrl = m.ChatUrl
+                })
+                .ToListAsync();
 
             var paginated = PaginatedResult<MatchDetailsDto>.Success(matches, totalCount, pageNumber, pageSize);
 
@@ -62,19 +60,19 @@ namespace ArabFootball.Api.Features.Matchs
         public async Task<ApiResponse<MatchDetailsDto>> GetMatchByIdAsync(int matchId)
         {
             var match = await _context.Matches
-                   .AsNoTracking()
-                   .Where(m => m.Id == matchId)
-                   .Select(m => new MatchDetailsDto
-                   {
-                       HomeTeam = m.HomeTeam,
-                       AwayTeam = m.AwayTeam,
-                       League = m.League,
-                       StartTime = m.StartTime,
-                       Status = m.Status,
-                       PredictionState = m.PredictionState,
-                       ChatUrl = m.ChatUrl,
-                   })
-                   .FirstOrDefaultAsync();
+                .AsNoTracking()
+                .Where(m => m.Id == matchId)
+                .Select(m => new MatchDetailsDto
+                {
+                    HomeTeam = m.HomeTeam,
+                    AwayTeam = m.AwayTeam,
+                    League = m.League,
+                    StartTime = m.StartTime,
+                    Status = m.Status,
+                    PredictionState = m.PredictionState,
+                    ChatUrl = m.ChatUrl,
+                })
+                .FirstOrDefaultAsync();
 
             if (match == null)
             {
@@ -82,7 +80,6 @@ namespace ArabFootball.Api.Features.Matchs
             }
 
             return ApiResponse<MatchDetailsDto>.Success(match, "تم جلب المباراة بنجاح.");
-
         }
 
         public async Task<ApiResponse<MatchDetailsDto>> CreateMatchAsync(CreateMatchDto dto, int adminId)
@@ -93,13 +90,33 @@ namespace ArabFootball.Api.Features.Matchs
                 return ApiResponse<MatchDetailsDto>.Error(HttpStatusCode.BadRequest, "المشرف غير موجود.");
             }
 
+            if (!SaudiDateTimeBuilder.TryBuild(
+                    dto.MatchDate,
+                    dto.Hour,
+                    dto.Minute,
+                    dto.Period,
+                    out var startTimeSaudi,
+                    out var dateTimeError))
+            {
+                return ApiResponse<MatchDetailsDto>.Error(
+                    HttpStatusCode.BadRequest,
+                    dateTimeError);
+            }
+
+            if (startTimeSaudi <= SaudiTime.Now())
+            {
+                return ApiResponse<MatchDetailsDto>.Error(
+                    HttpStatusCode.BadRequest,
+                    "وقت المباراة يجب أن يكون في المستقبل بتوقيت السعودية.");
+            }
+
             var match = new Match
             {
                 AdminId = adminId,
                 HomeTeam = dto.HomeTeam.Trim(),
                 AwayTeam = dto.AwayTeam.Trim(),
                 League = dto.League.Trim(),
-                StartTime = dto.StartTime.ToUniversalTime(),
+                StartTime = startTimeSaudi,
                 Status = MatchStatus.Upcoming,
                 PredictionState = PredictionState.Open
             };
@@ -129,10 +146,30 @@ namespace ArabFootball.Api.Features.Matchs
                 return ApiResponse<MatchDetailsDto>.Error(HttpStatusCode.NotFound, "المباراة غير موجودة.");
             }
 
+            if (!SaudiDateTimeBuilder.TryBuild(
+                    dto.MatchDate,
+                    dto.Hour,
+                    dto.Minute,
+                    dto.Period,
+                    out var startTimeSaudi,
+                    out var dateTimeError))
+            {
+                return ApiResponse<MatchDetailsDto>.Error(
+                    HttpStatusCode.BadRequest,
+                    dateTimeError);
+            }
+
+            if (startTimeSaudi <= SaudiTime.Now())
+            {
+                return ApiResponse<MatchDetailsDto>.Error(
+                    HttpStatusCode.BadRequest,
+                    "وقت المباراة يجب أن يكون في المستقبل بتوقيت السعودية.");
+            }
+
             match.HomeTeam = dto.HomeTeam.Trim();
             match.AwayTeam = dto.AwayTeam.Trim();
             match.League = dto.League.Trim();
-            match.StartTime = dto.StartTime.ToUniversalTime();
+            match.StartTime = startTimeSaudi;
 
             await _context.SaveChangesAsync();
 
@@ -148,7 +185,6 @@ namespace ArabFootball.Api.Features.Matchs
             };
 
             return ApiResponse<MatchDetailsDto>.Success(result, "تم تحديث المباراة بنجاح.");
-
         }
 
         public async Task<ApiResponse<bool>> DeleteMatchAsync(int matchId)
@@ -179,25 +215,32 @@ namespace ArabFootball.Api.Features.Matchs
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.Success(true, "تم تحديث حالة المباراة بنجاح.");
-
         }
 
         public async Task<ApiResponse<bool>> OpenPredictionsAsync(int matchId)
         {
-
             var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
             if (match == null)
             {
                 return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "المباراة غير موجودة.");
             }
+
             if (match.PredictionState == PredictionState.Open)
+            {
                 return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "التوقع للمباراة مفتوح بالفعل");
+            }
+
+            if (SaudiTime.Now() >= match.StartTime)
+            {
+                return ApiResponse<bool>.Error(
+                    HttpStatusCode.BadRequest,
+                    "لا يمكن فتح التوقعات لأن وقت المباراة بدأ أو انتهى.");
+            }
 
             match.PredictionState = PredictionState.Open;
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.Success(true, "تم فتح التوقعات بنجاح.");
-
         }
 
         public async Task<ApiResponse<bool>> ClosePredictionsAsync(int matchId)
@@ -209,7 +252,9 @@ namespace ArabFootball.Api.Features.Matchs
             }
 
             if (match.PredictionState == PredictionState.Closed)
+            {
                 return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "التوقع للمباراة مغلق بالفعل");
+            }
 
             match.PredictionState = PredictionState.Closed;
             await _context.SaveChangesAsync();
@@ -229,7 +274,6 @@ namespace ArabFootball.Api.Features.Matchs
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.Success(true, "تم ربط المحادثة بنجاح.");
-
         }
 
         public async Task<ApiResponse<bool>> UnlinkChatAsync(int matchId)
@@ -246,7 +290,6 @@ namespace ArabFootball.Api.Features.Matchs
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.Success(true, "تم فك ربط المحادثة بنجاح.");
-
         }
     }
 }
