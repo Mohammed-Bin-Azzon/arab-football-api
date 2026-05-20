@@ -28,8 +28,8 @@ namespace ArabFootball.Api.Controllers
         [HttpPatch("me")]
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateFanProfileDto dto)
         {
-            //if (!ModelState.IsValid)
-            //    return this.ValidationProblemResponse("بيانات الملف الشخصي غير صالحة.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _fansService.UpdateProfileAsync(fanId, dto));

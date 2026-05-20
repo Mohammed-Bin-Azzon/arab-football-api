@@ -21,8 +21,8 @@ namespace ArabFootball.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            //if (!ModelState.IsValid)
-            //    return this.ValidationProblemResponse("بيانات التسجيل غير صالحة.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             return Response(await _authService.RegisterAsync(dto));
         }
@@ -31,8 +31,8 @@ namespace ArabFootball.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            //if (!ModelState.IsValid)
-            //    return this.ValidationProblemResponse("بيانات تسجيل الدخول غير صالحة.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             return Response(await _authService.LoginAsync(dto));
         }

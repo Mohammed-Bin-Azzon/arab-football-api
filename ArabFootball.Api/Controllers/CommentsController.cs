@@ -22,8 +22,8 @@ namespace ArabFootball.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
-            //if (!ModelState.IsValid)
-            //    return this.ValidationProblemResponse("بيانات التعليق غير صالحة.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _commentsService.AddCommentAsync(fanId, dto));

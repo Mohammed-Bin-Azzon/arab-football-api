@@ -22,8 +22,8 @@ namespace ArabFootball.Api.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> SubmitPrediction([FromBody] SubmitPredictionDto dto)
         {
-            //if (!ModelState.IsValid)
-            //    return this.ValidationProblemResponse("بيانات التوقع غير صالحة.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _predictionsService.SubmitPredictionAsync(fanId, dto));

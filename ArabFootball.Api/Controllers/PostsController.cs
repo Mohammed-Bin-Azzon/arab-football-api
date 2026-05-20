@@ -22,8 +22,8 @@ namespace ArabFootball.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] CreatePostDto dto)
         {
-            //if (!ModelState.IsValid)
-            //    return this.ValidationProblemResponse("بيانات المنشور غير صالحة.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _postsService.CreatePostAsync(fanId, dto));
