@@ -34,5 +34,12 @@ namespace ArabFootball.Api.Controllers
         {
             return Response(await _commentsService.GetPostCommentsAsync(postId));
         }
+
+        [HttpDelete("{commentId:int}")]
+        public async Task<IActionResult> DeleteComment(int commentId)
+        {
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            return Response(await _commentsService.DeleteCommentAsync(commentId, fanId));
+        }
     }
 }

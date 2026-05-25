@@ -14,6 +14,9 @@ namespace ArabFootball.Api.Features.Posts.Dtos
         public int CommentCount { get; set; }
         public int BookmarkCount { get; set; }
 
+        public bool IsLiked { get; set; }
+        public bool IsBookmarked { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public int FanId { get; set; }

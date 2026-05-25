@@ -131,5 +131,53 @@ namespace ArabFootball.Api.Features.Comments
             return ApiResponse<List<CommentDto>>.Success(comments, "تم جلب التعليقات بنجاح.");
            
         }
+
+
+        public async Task<ApiResponse<object>> DeleteCommentAsync(int commentId, int fanId)
+        {
+            try
+            {
+                var comment = await _context.Comments
+                    .Include(c => c.Post)
+                    .FirstOrDefaultAsync(c => c.Id == commentId);
+
+                if (comment == null)
+                {
+                    return ApiResponse<object>.Error(
+                        HttpStatusCode.NotFound,
+                        "التعليق غير موجود.");
+                }
+
+                var isCommentOwner = comment.FanId == fanId;
+                var isPostOwner = comment.Post.FanId == fanId;
+
+                if (!isCommentOwner && !isPostOwner)
+                {
+                    return ApiResponse<object>.Error(
+                        HttpStatusCode.Forbidden,
+                        "لا يمكنك حذف هذا التعليق.");
+                }
+
+                var postId = comment.PostId;
+
+                _context.Comments.Remove(comment);
+                await _context.SaveChangesAsync();
+
+                var post = await _context.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+                if (post != null)
+                {
+                    post.CommentCount = await _context.Comments.CountAsync(c => c.PostId == postId);
+                    await _context.SaveChangesAsync();
+                }
+
+                return ApiResponse<object>.Success(null, "تم حذف التعليق بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<object>.Error(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء حذف التعليق.");
+            }
+        }
     }
 }

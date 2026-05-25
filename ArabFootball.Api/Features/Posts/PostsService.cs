@@ -107,9 +107,41 @@ namespace ArabFootball.Api.Features.Posts.Services
             }
         }
 
+        public async Task<ApiResponse<PostDto>> GetPostByIdAsync(int postId, int viewerFanId)
+        {
+            var post = await _context.Posts
+                .AsNoTracking()
+                .Where(p => p.Id == postId)
+                .Select(p => new PostDto
+                {
+                    Id = p.Id,
+                    Caption = p.Caption,
+                    MediaUrl = p.MediaUrl,
+                    MediaType = p.MediaType.ToString(),
+                    CreatedAt = p.CreatedAt,
+                    LikeCount = p.LikeCount,
+                    CommentCount = p.CommentCount,
+                    BookmarkCount = p.BookmarkCount,
+                    IsLiked = p.Likes.Any(l => l.FanId == viewerFanId),
+                    IsBookmarked = p.Bookmarks.Any(b => b.FanId == viewerFanId),
+                    FanId = p.FanId,
+                    FanDisplayName = p.Fan.DisplayName,
+                    FanProfilePicUrl = p.Fan.ProfilePicUrl
+                })
+                .FirstOrDefaultAsync();
+
+            if (post == null)
+            {
+                return ApiResponse<PostDto>.Error(
+                    HttpStatusCode.NotFound,
+                    "المنشور غير موجود.");
+            }
+
+            return ApiResponse<PostDto>.Success(post, "تم جلب تفاصيل المنشور بنجاح.");
+        }
+
         public async Task<ApiResponse<List<PostDto>>> GetHomeFeedAsync()
         {
-            
             var posts = await _context.Posts
                 .AsNoTracking()
                 .OrderByDescending(p => p.CreatedAt)
@@ -134,7 +166,6 @@ namespace ArabFootball.Api.Features.Posts.Services
 
         public async Task<ApiResponse<object>> DeletePostAsync(int postId, int fanId)
         {
-            
             var post = await _context.Posts
                 .FirstOrDefaultAsync(p => p.Id == postId && p.FanId == fanId);
 
@@ -153,7 +184,109 @@ namespace ArabFootball.Api.Features.Posts.Services
             _fileService.DeleteFile(mediaPath);
 
             return ApiResponse<object>.Success(null, "تم حذف المنشور بنجاح.");
-            
+        }
+
+        public async Task<ApiResponse<PostDto>> UpdatePostAsync(int postId, int fanId, UpdatePostDto dto)
+        {
+            string? newMediaPath = null;
+            string? oldMediaPath = null;
+
+            try
+            {
+                var post = await _context.Posts
+                    .Include(p => p.Fan)
+                    .FirstOrDefaultAsync(p => p.Id == postId);
+
+                if (post == null)
+                {
+                    return ApiResponse<PostDto>.Error(
+                        HttpStatusCode.NotFound,
+                        "المنشور غير موجود.");
+                }
+
+                if (post.FanId != fanId)
+                {
+                    return ApiResponse<PostDto>.Error(
+                        HttpStatusCode.Forbidden,
+                        "لا يمكنك تعديل منشور لا تملكه.");
+                }
+
+                if (dto.Caption != null)
+                {
+                    post.Caption = string.IsNullOrWhiteSpace(dto.Caption)
+                        ? null
+                        : dto.Caption.Trim();
+                }
+
+                if (dto.Media != null)
+                {
+                    oldMediaPath = post.MediaUrl;
+
+                    newMediaPath = await _fileService.SaveFileAsync(dto.Media, "posts");
+                    post.MediaUrl = newMediaPath;
+
+                    var contentType = dto.Media.ContentType.ToLower();
+
+                    if (contentType.StartsWith("image/"))
+                    {
+                        post.MediaType = MediaType.Image;
+                    }
+                    else if (contentType.StartsWith("video/"))
+                    {
+                        post.MediaType = MediaType.Video;
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(newMediaPath))
+                            _fileService.DeleteFile(newMediaPath);
+
+                        return ApiResponse<PostDto>.Error(
+                            HttpStatusCode.BadRequest,
+                            "نوع الملف غير مدعوم. الرجاء رفع صورة أو فيديو فقط.");
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                if (!string.IsNullOrWhiteSpace(oldMediaPath) &&
+                    !string.Equals(oldMediaPath, post.MediaUrl, StringComparison.OrdinalIgnoreCase))
+                {
+                    _fileService.DeleteFile(oldMediaPath);
+                }
+
+                var isLiked = await _context.Likes.AnyAsync(l => l.PostId == post.Id && l.FanId == fanId);
+                var isBookmarked = await _context.Bookmarks.AnyAsync(b => b.PostId == post.Id && b.FanId == fanId);
+
+                var result = new PostDto
+                {
+                    Id = post.Id,
+                    Caption = post.Caption,
+                    MediaUrl = post.MediaUrl,
+                    MediaType = post.MediaType.ToString(),
+                    CreatedAt = post.CreatedAt,
+                    LikeCount = post.LikeCount,
+                    CommentCount = post.CommentCount,
+                    BookmarkCount = post.BookmarkCount,
+                    IsLiked = isLiked,
+                    IsBookmarked = isBookmarked,
+                    FanId = post.FanId,
+                    FanDisplayName = post.Fan.DisplayName,
+                    FanProfilePicUrl = post.Fan.ProfilePicUrl
+                };
+
+                return ApiResponse<PostDto>.Success(result, "تم تعديل المنشور بنجاح.");
+            }
+            catch (Exception)
+            {
+                if (!string.IsNullOrWhiteSpace(newMediaPath))
+                    _fileService.DeleteFile(newMediaPath);
+
+                return ApiResponse<PostDto>.Error(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء تعديل المنشور.");
+            }
         }
     }
+
+
 }

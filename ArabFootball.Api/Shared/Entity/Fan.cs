@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ArabFootball.Api.Shared.Entity
 {
-
     public class Fan : User
     {
         [MaxLength(100)]
@@ -13,6 +12,12 @@ namespace ArabFootball.Api.Shared.Entity
         public string? Bio { get; set; }
 
         public string? ProfilePicUrl { get; set; }
+
+        [MaxLength(50)]
+        public string? FavoriteTeamCode { get; set; }
+
+        [MaxLength(50)]
+        public string? FavoritePlayerCode { get; set; }
 
         public int FollowersCount { get; set; } = 0;
         public int FollowingCount { get; set; } = 0;
