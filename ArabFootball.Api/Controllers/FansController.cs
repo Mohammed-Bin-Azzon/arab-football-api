@@ -41,6 +41,18 @@ namespace ArabFootball.Api.Controllers
             return Response(await _fansService.SearchFansAsync(query));
         }
 
+        [HttpGet("{id:int}/followers")]
+        public async Task<IActionResult> GetFollowers(int id)
+        {
+            return Response(await _fansService.GetFollowersAsync(id));
+        }
+
+        [HttpGet("{id:int}/following")]
+        public async Task<IActionResult> GetFollowing(int id)
+        {
+            return Response(await _fansService.GetFollowingAsync(id));
+        }
+
         [HttpPost("{targetId:int}/follow")]
         public async Task<IActionResult> Follow(int targetId)
         {

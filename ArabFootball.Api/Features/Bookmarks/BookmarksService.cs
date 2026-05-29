@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using ArabFootball.Api.Features.Bookmarks.BookmarksDto;
+using ArabFootball.Api.Features.Posts.Dtos;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Shared.Helpers;
@@ -96,6 +97,47 @@ namespace ArabFootball.Api.Features.Bookmarks
                     HttpStatusCode.InternalServerError,
                     "حدث خطأ أثناء تنفيذ العملية.");
             }
+        }
+
+        public async Task<ApiResponse<List<PostDto>>> GetSavedPostsAsync(int fanId)
+        {
+            var fanExists = await _context.Fans
+                .AsNoTracking()
+                .AnyAsync(f => f.Id == fanId);
+
+            if (!fanExists)
+            {
+                return ApiResponse<List<PostDto>>.Error(
+                    HttpStatusCode.NotFound,
+                    "المستخدم غير موجود.");
+            }
+
+            var posts = await _context.Bookmarks
+                .AsNoTracking()
+                .Where(b => b.FanId == fanId)
+                .OrderByDescending(b => b.CreatedAt)
+                .Select(b => b.Post)
+                .Select(p => new PostDto
+                {
+                    Id = p.Id,
+                    Caption = p.Caption,
+                    MediaUrl = p.MediaUrl,
+                    MediaType = p.MediaType.ToString(),
+                    CreatedAt = p.CreatedAt,
+                    LikeCount = p.LikeCount,
+                    CommentCount = p.CommentCount,
+                    BookmarkCount = p.BookmarkCount,
+                    IsLiked = p.Likes.Any(l => l.FanId == fanId),
+                    IsBookmarked = true,
+                    FanId = p.FanId,
+                    FanDisplayName = p.Fan.DisplayName,
+                    FanProfilePicUrl = p.Fan.ProfilePicUrl
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<PostDto>>.Success(
+                posts,
+                "تم جلب العناصر المحفوظة بنجاح.");
         }
     }
 }

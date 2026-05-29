@@ -34,7 +34,9 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = f.ProfilePicUrl,
                     FollowersCount = f.FollowersCount,
                     FollowingCount = f.FollowingCount,
-                    Points = f.Points,
+                    FavoriteTeamCode = f.FavoriteTeamCode,
+                    FavoritePlayerCode = f.FavoritePlayerCode,
+                    //Points = f.Points,
                     Posts = f.Posts
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => new PostDto
@@ -95,6 +97,20 @@ namespace ArabFootball.Api.Features.Fans
 
                 fan.Bio = string.IsNullOrWhiteSpace(dto.Bio) ? null : dto.Bio.Trim();
 
+                if (dto.FavoriteTeamCode != null)
+                {
+                    fan.FavoriteTeamCode = string.IsNullOrWhiteSpace(dto.FavoriteTeamCode)
+                        ? null
+                        : dto.FavoriteTeamCode.Trim().ToLowerInvariant();
+                }
+
+                if (dto.FavoritePlayerCode != null)
+                {
+                    fan.FavoritePlayerCode = string.IsNullOrWhiteSpace(dto.FavoritePlayerCode)
+                        ? null
+                        : dto.FavoritePlayerCode.Trim().ToLowerInvariant();
+                }
+
                 await _context.SaveChangesAsync();
 
                 if (!string.IsNullOrWhiteSpace(oldImagePath) &&
@@ -110,9 +126,10 @@ namespace ArabFootball.Api.Features.Fans
                     DisplayName = fan.DisplayName,
                     Bio = fan.Bio,
                     ProfilePicUrl = fan.ProfilePicUrl,
+                    FavoriteTeamCode = fan.FavoriteTeamCode,
+                    FavoritePlayerCode = fan.FavoritePlayerCode,
                     FollowersCount = fan.FollowersCount,
-                    FollowingCount = fan.FollowingCount,
-                    Points = fan.Points
+                    FollowingCount = fan.FollowingCount
                 };
 
                 return ApiResponse<FanBasicProfileDto>.Success(result, "تم تحديث الملف الشخصي بنجاح.");
@@ -157,11 +174,81 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = f.ProfilePicUrl,
                     FollowersCount = f.FollowersCount,
                     FollowingCount = f.FollowingCount,
-                    Points = f.Points
+                    //Points = f.Points
                 })
                 .ToListAsync();
 
             return ApiResponse<List<FanBasicProfileDto>>.Success(results, "تم جلب نتائج البحث بنجاح.");
+        }
+
+        public async Task<ApiResponse<List<FanBasicProfileDto>>> GetFollowersAsync(int fanId)
+        {
+            var fanExists = await _context.Fans
+                .AsNoTracking()
+                .AnyAsync(f => f.Id == fanId);
+
+            if (!fanExists)
+            {
+                return ApiResponse<List<FanBasicProfileDto>>.Error(
+                    HttpStatusCode.NotFound,
+                    "المشجع غير موجود.");
+            }
+
+            var followers = await _context.Follows
+                .AsNoTracking()
+                .Where(f => f.FollowedFanId == fanId)
+                .OrderByDescending(f => f.FollowDate)
+                .Select(f => new FanBasicProfileDto
+                {
+                    Id = f.Follower.Id,
+                    Username = f.Follower.Username,
+                    DisplayName = f.Follower.DisplayName,
+                    Bio = f.Follower.Bio,
+                    ProfilePicUrl = f.Follower.ProfilePicUrl,
+                    FollowersCount = f.Follower.FollowersCount,
+                    FollowingCount = f.Follower.FollowingCount,
+                    //Points = f.Follower.Points
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<FanBasicProfileDto>>.Success(
+                followers,
+                "تم جلب المتابعين بنجاح.");
+        }
+
+        public async Task<ApiResponse<List<FanBasicProfileDto>>> GetFollowingAsync(int fanId)
+        {
+            var fanExists = await _context.Fans
+                .AsNoTracking()
+                .AnyAsync(f => f.Id == fanId);
+
+            if (!fanExists)
+            {
+                return ApiResponse<List<FanBasicProfileDto>>.Error(
+                    HttpStatusCode.NotFound,
+                    "المشجع غير موجود.");
+            }
+
+            var following = await _context.Follows
+                .AsNoTracking()
+                .Where(f => f.FollowerId == fanId)
+                .OrderByDescending(f => f.FollowDate)
+                .Select(f => new FanBasicProfileDto
+                {
+                    Id = f.FollowedFan.Id,
+                    Username = f.FollowedFan.Username,
+                    DisplayName = f.FollowedFan.DisplayName,
+                    Bio = f.FollowedFan.Bio,
+                    ProfilePicUrl = f.FollowedFan.ProfilePicUrl,
+                    FollowersCount = f.FollowedFan.FollowersCount,
+                    FollowingCount = f.FollowedFan.FollowingCount,
+                    //Points = f.FollowedFan.Points
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<FanBasicProfileDto>>.Success(
+                following,
+                "تم جلب قائمة المتابعة بنجاح.");
         }
 
         public async Task<ApiResponse<object>> FollowFanAsync(int followerId, int followedFanId)

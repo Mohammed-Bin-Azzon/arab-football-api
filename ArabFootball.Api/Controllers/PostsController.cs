@@ -29,10 +29,27 @@ namespace ArabFootball.Api.Controllers
             return Response(await _postsService.CreatePostAsync(fanId, dto));
         }
 
+        [HttpGet("{postId:int}")]
+        public async Task<IActionResult> GetById(int postId)
+        {
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            return Response(await _postsService.GetPostByIdAsync(postId, fanId));
+        }
+
         [HttpGet("feed")]
         public async Task<IActionResult> GetFeed()
         {
             return Response(await _postsService.GetHomeFeedAsync());
+        }
+
+        [HttpPatch("{postId:int}")]
+        public async Task<IActionResult> UpdatePost(int postId, [FromForm] UpdatePostDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            return Response(await _postsService.UpdatePostAsync(postId, fanId, dto));
         }
 
         [HttpDelete("{postId:int}")]
