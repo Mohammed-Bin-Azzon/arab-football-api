@@ -13,11 +13,11 @@ namespace ArabFootball.Api.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class MatchController : AppControllerBase
+    public class MatchesController : AppControllerBase
     {
         private readonly IMatchService _service;
 
-        public MatchController(IMatchService service)
+        public MatchesController(IMatchService service)
         {
             _service = service;
         }

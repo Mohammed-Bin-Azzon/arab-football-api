@@ -40,6 +40,7 @@ namespace ArabFootball.Api.Features.Matchs
                 .Take(pageSize)
                 .Select(m => new MatchDetailsDto
                 {
+                    Id = m.Id,
                     HomeTeam = m.HomeTeam,
                     AwayTeam = m.AwayTeam,
                     League = m.League,
@@ -64,6 +65,7 @@ namespace ArabFootball.Api.Features.Matchs
                 .Where(m => m.Id == matchId)
                 .Select(m => new MatchDetailsDto
                 {
+                    Id = m.Id,
                     HomeTeam = m.HomeTeam,
                     AwayTeam = m.AwayTeam,
                     League = m.League,
@@ -126,6 +128,7 @@ namespace ArabFootball.Api.Features.Matchs
 
             var result = new MatchDetailsDto
             {
+                Id = match.Id,
                 HomeTeam = match.HomeTeam,
                 AwayTeam = match.AwayTeam,
                 League = match.League,
@@ -175,6 +178,7 @@ namespace ArabFootball.Api.Features.Matchs
 
             var result = new MatchDetailsDto
             {
+                Id = match.Id,
                 HomeTeam = match.HomeTeam,
                 AwayTeam = match.AwayTeam,
                 League = match.League,
@@ -209,6 +213,11 @@ namespace ArabFootball.Api.Features.Matchs
             if (match == null)
             {
                 return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "المباراة غير موجودة.");
+            }
+
+            if (!Enum.IsDefined(typeof(MatchStatus), status))
+            {
+                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest,"حالة المباراة غير صحيحة");
             }
 
             match.Status = status;
