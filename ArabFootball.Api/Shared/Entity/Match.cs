@@ -10,7 +10,9 @@ namespace ArabFootball.Api.Shared.Entity
         public Admin Admin { get; set; } = null!;
 
         public string HomeTeam { get; set; } = null!;
+        public string? HomeTeamLogoUrl { get; set; }
         public string AwayTeam { get; set; } = null!;
+        public string? AwayTeamLogoUrl { get; set; }
         public string League { get; set; } = null!;
 
         public DateTime StartTime { get; set; }

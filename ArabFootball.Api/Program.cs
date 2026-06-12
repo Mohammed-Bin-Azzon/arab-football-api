@@ -72,6 +72,17 @@ builder.Services.AddScoped<IChatMemberService, ChatMemberService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 
 builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .SetIsOriginAllowed(_ => true)
+            .AllowCredentials();
+    });
+});
 
 // DbContext
 builder.Services.AddDbContext<AppDBContext>(options =>
@@ -127,6 +138,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseCors("AllowAll");
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

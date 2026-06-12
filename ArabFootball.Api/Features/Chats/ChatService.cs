@@ -68,6 +68,80 @@ namespace ArabFootball.Api.Features.Chats
             return ApiResponse<Chat>.Success(chat, "المحادثة موجودة");
         }
 
+        public async Task<ApiResponse<List<ChatResponseDto>>> GetMyChatsAsync(int userId)
+        {
+            var chats = await _context.Chats
+                .AsNoTracking()
+                .Where(c => c.Members.Any(m => m.FanId == userId))
+                .OrderByDescending(c =>
+                    c.Messages
+                        .OrderByDescending(m => m.CreatedAt)
+                        .Select(m => (DateTime?)m.CreatedAt)
+                        .FirstOrDefault() ?? c.CreatedAt)
+                .Select(c => new ChatResponseDto
+                {
+                    Id = c.ChatId,
+                    ChatType = c.ChatType,
+                    CreatedAt = c.CreatedAt,
+
+                    Title = c.ChatType == ChatType.Private
+                        ? c.Members
+                            .Where(m => m.FanId != userId)
+                            .Select(m => m.Fan.Username)
+                            .FirstOrDefault()
+                        : c.Title,
+
+                    LastMessage = c.Messages
+                        .OrderByDescending(m => m.CreatedAt)
+                        .Select(m =>
+                            m.MessageType == MessageType.Text
+                                ? m.Content
+                                : m.MessageType == MessageType.Image
+                                    ? "صورة"
+                                    : m.MessageType == MessageType.Video
+                                        ? "فيديو"
+                                        : "رسالة نظام")
+                        .FirstOrDefault(),
+
+                    LastMessageAt = c.Messages
+                        .OrderByDescending(m => m.CreatedAt)
+                        .Select(m => (DateTime?)m.CreatedAt)
+                        .FirstOrDefault(),
+
+                    LastMessageType = c.Messages
+                        .OrderByDescending(m => m.CreatedAt)
+                        .Select(m => (MessageType?)m.MessageType)
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            var message = chats.Any()
+                ? "تم جلب محادثاتك"
+                : "لا توجد محادثات";
+
+            return ApiResponse<List<ChatResponseDto>>.Success(chats, message);
+        }
+        public async Task<ApiResponse<ChatResponseDto>> GetMatchChatAsync(int matchId)
+        {
+            var chat = await _context.Chats
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c =>
+                    c.MatchId == matchId &&
+                    c.ChatType == ChatType.Match);
+
+            if (chat == null)
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.NotFound,"محادثة المباراة غير موجودة");
+
+            var response = new ChatResponseDto
+            {
+                Id = chat.ChatId,
+                Title = chat.Title,
+                ChatType = chat.ChatType,
+                CreatedAt = chat.CreatedAt
+            };
+
+            return ApiResponse<ChatResponseDto>.Success(response,"تم جلب محادثة المباراة");
+        }
         public async Task<ApiResponse<ChatResponseDto>> CreatePrivateChatAsync(CreatePrivateChatDto dto)
         {
             if (dto.Fan1Id == dto.Fan2Id)
@@ -92,7 +166,19 @@ namespace ArabFootball.Api.Features.Chats
                 );
 
             if (existingChat != null)
-                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.BadRequest, "المحادثة موجودة بالفعل");
+            {
+                var existingResponse = new ChatResponseDto
+                {
+                    Id = existingChat.ChatId,
+                    ChatType = existingChat.ChatType,
+                    CreatedAt = existingChat.CreatedAt
+                };
+
+                return ApiResponse<ChatResponseDto>.Success(
+                    existingResponse,
+                    "المحادثة موجودة بالفعل"
+                );
+            }
 
             var chat = new Chat
             {

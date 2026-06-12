@@ -36,7 +36,7 @@ namespace ArabFootball.Api.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateMatchDto dto)
+        public async Task<IActionResult> Create([FromForm] CreateMatchDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -47,7 +47,7 @@ namespace ArabFootball.Api.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpPatch("{id:int}/update")]
-        public async Task<IActionResult> Update([FromRoute] int id, [FromBody] UpdateMatchDto dto)
+        public async Task<IActionResult> Update([FromRoute] int id, [FromForm] UpdateMatchDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
