@@ -1,9 +1,8 @@
-﻿using api_training.Shared.Helpers;
-using Microsoft.AspNetCore.Http;
+﻿using ArabFootball.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
-namespace api_training.Controllers
+namespace ArabFootball.Api.Controllers
 {
   
     public class AppControllerBase : ControllerBase
