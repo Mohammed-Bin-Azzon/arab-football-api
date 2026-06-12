@@ -3,6 +3,7 @@ using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Features.Matchs.MatchDto;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
+using ArabFootball.Api.Shared.Helpers;
 using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace ArabFootball.Api.Features.Matchs
     public class MatchService : IMatchService
     {
         private readonly AppDBContext _context;
+        private readonly IFileService _fileService;
 
-        public MatchService(AppDBContext context)
+        public MatchService(AppDBContext context, IFileService fileService)
         {
             _context = context;
+            _fileService = fileService;
         }
 
         public async Task<ApiResponse<PaginatedResult<MatchDetailsDto>>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
@@ -42,7 +45,9 @@ namespace ArabFootball.Api.Features.Matchs
                 {
                     Id = m.Id,
                     HomeTeam = m.HomeTeam,
+                    HomeTeamLogoUrl = m.HomeTeamLogoUrl,
                     AwayTeam = m.AwayTeam,
+                    AwayTeamLogoUrl = m.AwayTeamLogoUrl,
                     League = m.League,
                     StartTime = m.StartTime,
                     Status = m.Status,
@@ -67,7 +72,9 @@ namespace ArabFootball.Api.Features.Matchs
                 {
                     Id = m.Id,
                     HomeTeam = m.HomeTeam,
+                    HomeTeamLogoUrl = m.HomeTeamLogoUrl,
                     AwayTeam = m.AwayTeam,
+                    AwayTeamLogoUrl = m.AwayTeamLogoUrl,
                     League = m.League,
                     StartTime = m.StartTime,
                     Status = m.Status,
@@ -112,11 +119,32 @@ namespace ArabFootball.Api.Features.Matchs
                     "وقت المباراة يجب أن يكون في المستقبل بتوقيت السعودية.");
             }
 
+            string? homeLogoUrl = null;
+            string? awayLogoUrl = null;
+
+            if (dto.HomeTeamLogo != null)
+            {
+                homeLogoUrl = await _fileService.SaveFileAsync(
+                    dto.HomeTeamLogo,
+                    "matches"
+                );
+            }
+
+            if (dto.AwayTeamLogo != null)
+            {
+                awayLogoUrl = await _fileService.SaveFileAsync(
+                    dto.AwayTeamLogo,
+                    "matches"
+                );
+            }
+
             var match = new Match
             {
                 AdminId = adminId,
                 HomeTeam = dto.HomeTeam.Trim(),
+                HomeTeamLogoUrl = homeLogoUrl,
                 AwayTeam = dto.AwayTeam.Trim(),
+                AwayTeamLogoUrl = awayLogoUrl,
                 League = dto.League.Trim(),
                 StartTime = startTimeSaudi,
                 Status = MatchStatus.Upcoming,
@@ -130,7 +158,9 @@ namespace ArabFootball.Api.Features.Matchs
             {
                 Id = match.Id,
                 HomeTeam = match.HomeTeam,
+                HomeTeamLogoUrl = match.HomeTeamLogoUrl,
                 AwayTeam = match.AwayTeam,
+                AwayTeamLogoUrl= match.AwayTeamLogoUrl,
                 League = match.League,
                 StartTime = match.StartTime,
                 Status = match.Status,
@@ -169,6 +199,32 @@ namespace ArabFootball.Api.Features.Matchs
                     "وقت المباراة يجب أن يكون في المستقبل بتوقيت السعودية.");
             }
 
+            if (dto.HomeTeamLogo != null)
+            {
+                if (!string.IsNullOrWhiteSpace(match.HomeTeamLogoUrl))
+                {
+                    _fileService.DeleteFile(match.HomeTeamLogoUrl);
+                }
+
+                match.HomeTeamLogoUrl = await _fileService.SaveFileAsync(
+                    dto.HomeTeamLogo,
+                    "matches"
+                );
+            }
+
+            if (dto.AwayTeamLogo != null)
+            {
+                if (!string.IsNullOrWhiteSpace(match.AwayTeamLogoUrl))
+                {
+                    _fileService.DeleteFile(match.AwayTeamLogoUrl);
+                }
+
+                match.AwayTeamLogoUrl = await _fileService.SaveFileAsync(
+                    dto.AwayTeamLogo,
+                    "matches"
+                );
+            }
+
             match.HomeTeam = dto.HomeTeam.Trim();
             match.AwayTeam = dto.AwayTeam.Trim();
             match.League = dto.League.Trim();
@@ -180,7 +236,9 @@ namespace ArabFootball.Api.Features.Matchs
             {
                 Id = match.Id,
                 HomeTeam = match.HomeTeam,
+                HomeTeamLogoUrl = match.HomeTeamLogoUrl,
                 AwayTeam = match.AwayTeam,
+                AwayTeamLogoUrl = match.AwayTeamLogoUrl,
                 League = match.League,
                 StartTime = match.StartTime,
                 Status = match.Status,
@@ -199,6 +257,16 @@ namespace ArabFootball.Api.Features.Matchs
                 return ApiResponse<bool>.Error(
                     HttpStatusCode.NotFound,
                     "المباراة غير موجودة.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(match.HomeTeamLogoUrl))
+            {
+                _fileService.DeleteFile(match.HomeTeamLogoUrl);
+            }
+
+            if (!string.IsNullOrWhiteSpace(match.AwayTeamLogoUrl))
+            {
+                _fileService.DeleteFile(match.AwayTeamLogoUrl);
             }
 
             _context.Matches.Remove(match);

@@ -7,10 +7,12 @@ namespace ArabFootball.Api.Features.Matchs.MatchDto
         [Required(ErrorMessage = "اسم الفريق المضيف مطلوب.")]
         [MaxLength(100)]
         public string HomeTeam { get; set; } = null!;
+        public IFormFile? HomeTeamLogo { get; set; }
 
         [Required(ErrorMessage = "اسم الفريق الضيف مطلوب.")]
         [MaxLength(100)]
         public string AwayTeam { get; set; } = null!;
+        public IFormFile? AwayTeamLogo { get; set; }
 
         [Required(ErrorMessage = "اسم الدوري مطلوب.")]
         [MaxLength(100)]

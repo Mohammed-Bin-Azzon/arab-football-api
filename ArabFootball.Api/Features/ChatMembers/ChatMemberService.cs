@@ -46,27 +46,34 @@ namespace ArabFootball.Api.Features.ChatMembers
 
         public async Task<ApiResponse<List<ChatMemberResponesDto>>> GetChatMembersByChatIdAsync(int chatId)
         {
-            var chat = await _context.Chats.FirstOrDefaultAsync(c => c.ChatId == chatId);
-            if (chat == null)
-                return ApiResponse<List<ChatMemberResponesDto>>.Error(HttpStatusCode.NotFound, "المحادثة غير موجودة");
+            var chatExists = await _context.Chats.AnyAsync(c => c.ChatId == chatId);
 
-            var chatMembers = await _context.ChatMembers
-                                         .Where(c => c.ChatId == chatId)
-                                         .OrderByDescending(c => c.JoinedAt)
-                                         .Select(c => new ChatMemberResponesDto
-                                         {
-                                             ChatMemberId = c.Id,
-                                             FanId = c.FanId,
-                                             JoinedAt = c.JoinedAt,
-                                             IsModerator = c.IsModerator,
-                                             IsMuted = c.IsMuted
-                                         })
-                                         .ToListAsync();
+            if (!chatExists)
+                return ApiResponse<List<ChatMemberResponesDto>>.Error(
+                    HttpStatusCode.NotFound,
+                    "المحادثة غير موجودة"
+                );
 
-            var message = chatMembers.Count() > 0 ? "حمبع اعضاء المحادثة" : "لا يوجد هناك اعضاء في المحادثة";
+            var members = await _context.ChatMembers
+                .AsNoTracking()
+                .Where(m => m.ChatId == chatId)
+                .OrderByDescending(m => m.IsModerator)
+                .ThenBy(m => m.JoinedAt)
+                .Select(m => new ChatMemberResponesDto
+                {
+                    ChatMemberId = m.Id,
+                    FanId = m.FanId,
+                    FanName = m.Fan.DisplayName,
+                    JoinedAt = m.JoinedAt,
+                    IsModerator = m.IsModerator,
+                    IsMuted = m.IsMuted
+                })
+                .ToListAsync();
 
-            return ApiResponse<List<ChatMemberResponesDto>>.Success(chatMembers, message);
-
+            return ApiResponse<List<ChatMemberResponesDto>>.Success(
+                members,
+                members.Any() ? "جميع أعضاء المحادثة" : "لا يوجد أعضاء في المحادثة"
+            );
         }
 
 
@@ -151,7 +158,7 @@ namespace ArabFootball.Api.Features.ChatMembers
 
             var exists = await _context.ChatMembers.AnyAsync(x => x.ChatId == chatId && x.FanId == fanId);
             if (exists)
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest,"انت مضاف في المحادثة بالفعل");
+                return ApiResponse<bool>.Success(true,"انت مضاف في المحادثة بالفعل");
 
             var fan = await _context.Fans.AnyAsync(x => x.Id == fanId);
             if (!fan)

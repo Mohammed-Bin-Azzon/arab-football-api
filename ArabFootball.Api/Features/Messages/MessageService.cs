@@ -2,6 +2,7 @@
 using ArabFootball.Api.Features.Messages.MessageDto;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
+using ArabFootball.Api.Shared.Helpers;
 using ArabFootball.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -11,26 +12,59 @@ namespace ArabFootball.Api.Features.Messages
     public class MessageService : IMessageService
     {
         private readonly AppDBContext _context;
+        private readonly IFileService _fileService;
 
-        public MessageService(AppDBContext context)
+        private static readonly string[] AllowedImageExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+        private static readonly string[] AllowedVideoExtensions = [".mp4", ".mov"];
+        private static readonly HashSet<string> AllowedExtensions =
+            AllowedImageExtensions.Concat(AllowedVideoExtensions).ToHashSet();
+
+        public MessageService(AppDBContext context, IFileService fileService)
         {
             _context = context;
+            _fileService = fileService;
         }
 
         public async Task<ApiResponse<Message>> SendMessageAsync(SendMessageDto dto, int senderId)
         {
-            var chat = await _context.Chats.AnyAsync(c => c.ChatId == dto.ChatId);
+            var chat = await _context.Chats
+                        .Include(c => c.Match)
+                        .FirstOrDefaultAsync(c => c.ChatId == dto.ChatId);
+            if (chat == null)
+                return ApiResponse<Message>.Error(
+                    HttpStatusCode.NotFound,
+                    "المحادثة غير موجودة"
+                );
 
-            if (!chat)
-                return ApiResponse<Message>.Error(HttpStatusCode.NotFound, "المحادة غير موجودة");
+            var availabilityError = ValidateMatchChatAvailability(chat);
 
-            var member = await _context.ChatMembers.FirstOrDefaultAsync(x => x.ChatId == dto.ChatId && x.FanId == senderId);
+            if (availabilityError != null)
+            {
+                return ApiResponse<Message>.Error(
+                    availabilityError.StatusCode,
+                    availabilityError.Message
+                );
+            }
 
-            if (member == null)
-                return ApiResponse<Message>.Error(HttpStatusCode.Forbidden, "انت ليست عضوا في هذة المحادثة");
+            if (chat.ChatType != ChatType.Match)
+            {
+                var member = await _context.ChatMembers
+                    .FirstOrDefaultAsync(x =>
+                        x.ChatId == dto.ChatId &&
+                        x.FanId == senderId);
 
-            if (member.IsMuted)
-                return ApiResponse<Message>.Error(HttpStatusCode.Forbidden, "انت في وضع كتم الصوت");
+                if (member == null)
+                    return ApiResponse<Message>.Error(
+                        HttpStatusCode.Forbidden,
+                        "انت لست عضوا في هذه المحادثة"
+                    );
+
+                if (member.IsMuted)
+                    return ApiResponse<Message>.Error(
+                        HttpStatusCode.Forbidden,
+                        "انت في وضع كتم الصوت"
+                    );
+            }
 
             switch (dto.MessageType)
             {
@@ -71,20 +105,41 @@ namespace ArabFootball.Api.Features.Messages
         }
 
 
-        public async Task<ApiResponse<List<Message>>> GetAllMessagesAsync(int chatId)
+        public async Task<ApiResponse<List<MessageResponseDto>>> GetAllMessagesAsync(int chatId)
         {
             var exists = await _context.Chats
                 .AnyAsync(c => c.ChatId == chatId);
 
             if (!exists)
-                return ApiResponse<List<Message>>.Error(HttpStatusCode.NotFound, "المحادثة غير موجودة");
+                return ApiResponse<List<MessageResponseDto>>.Error(
+                    HttpStatusCode.NotFound,
+                    "المحادثة غير موجودة"
+                );
 
             var messages = await _context.Messages
+                .AsNoTracking()
                 .Where(m => m.ChatId == chatId)
                 .OrderBy(m => m.CreatedAt)
+                .Select(m => new MessageResponseDto
+                {
+                    MessageId = m.MessageId,
+                    ChatId = m.ChatId,
+                    SenderId = m.SenderId,
+                    SenderName = m.Sender != null
+                        ? m.Sender.DisplayName
+                        : null,
+                    Content = m.Content,
+                    AttachmentUrl = m.AttachmentUrl,
+                    MessageType = m.MessageType,
+                    CreatedAt = m.CreatedAt,
+                    IsRead = m.IsRead
+                })
                 .ToListAsync();
 
-            return ApiResponse<List<Message>>.Success(messages, "تم استلام الرسالة");
+            return ApiResponse<List<MessageResponseDto>>.Success(
+                messages,
+                "تم استلام الرسائل"
+            );
         }
 
 
@@ -144,6 +199,57 @@ namespace ArabFootball.Api.Features.Messages
             await _context.SaveChangesAsync();
 
             return message;
+        }
+
+        public async Task<ApiResponse<string>> UploadAttachmentAsync(UploadMessageAttachmentDto dto)
+        {
+            if (dto.File == null || dto.File.Length == 0)
+                return ApiResponse<string>.Error(
+                    HttpStatusCode.BadRequest,
+                    "ملف المرفق مطلوب"
+                );
+
+            var extension = Path.GetExtension(dto.File.FileName).ToLowerInvariant();
+
+            if (!AllowedExtensions.Contains(extension))
+                return ApiResponse<string>.Error(
+                    HttpStatusCode.BadRequest,
+                    "نوع الملف غير مدعوم"
+                );
+
+            var path = await _fileService.SaveFileAsync(dto.File, "messages");
+
+            return ApiResponse<string>.Success(path, "تم رفع المرفق بنجاح");
+        }
+        private ApiResponse<bool>? ValidateMatchChatAvailability(Chat chat)
+        {
+            if (chat.ChatType != ChatType.Match)
+                return null;
+
+            if (chat.Match == null)
+                return ApiResponse<bool>.Error(
+                    HttpStatusCode.BadRequest,
+                    "محادثة المباراة غير مرتبطة بمباراة"
+                );
+
+            var now = SaudiTime.Now();
+
+            var opensAt = chat.Match.StartTime.AddMinutes(-30);
+            var closesAt = chat.Match.StartTime.AddHours(3);
+
+            if (now < opensAt)
+                return ApiResponse<bool>.Error(
+                    HttpStatusCode.Forbidden,
+                    "محادثة المباراة لم تفتح بعد"
+                );
+
+            if (now > closesAt)
+                return ApiResponse<bool>.Error(
+                    HttpStatusCode.Forbidden,
+                    "تم إغلاق محادثة المباراة"
+                );
+
+            return null;
         }
     }
 }

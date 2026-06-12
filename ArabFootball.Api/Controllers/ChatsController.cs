@@ -3,17 +3,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ArabFootball.Api.Features.Chats.ChatDto;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace ArabFootball.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class ChatController : AppControllerBase
+    public class ChatsController : AppControllerBase
     {
         private readonly IChatService _service;
 
-        public ChatController(IChatService service)
+        public ChatsController(IChatService service)
         {
             _service = service;
         }
@@ -30,7 +31,20 @@ namespace ArabFootball.Api.Controllers
             return Response(await _service.GetChatByIdAsync(id));
         }
 
-        
+        [HttpGet("my-chats")]
+        public async Task<IActionResult> GetMyChats()
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            return Response(await _service.GetMyChatsAsync(userId));
+        }
+
+        [HttpGet("match/{matchId:int}")]
+        public async Task<IActionResult> GetMatchChat([FromRoute] int matchId)
+        {
+            return Response(await _service.GetMatchChatAsync(matchId));
+        }
+
         [HttpPost("create-private")]
         public async Task<IActionResult> CreatePrivate([FromBody] CreatePrivateChatDto dto)
         {

@@ -57,3 +57,10 @@ nunit-*.xml
 .vs/
 *.csproj.user
 *.suo
+
+# Uploaded files
+ArabFootball.Api/wwwroot/uploads/
+
+# Optional review files
+backend_changes_review.txt
+backend_changes_summary.txt

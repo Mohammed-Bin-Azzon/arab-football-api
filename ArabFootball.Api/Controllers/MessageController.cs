@@ -1,4 +1,5 @@
 ﻿using ArabFootball.Api.Features.Messages;
+using ArabFootball.Api.Features.Messages.MessageDto;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +39,12 @@ namespace ArabFootball.Api.Controllers
         {
             int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _service.MarkAsReadAsync(id, userId));
+        }
+
+        [HttpPost("upload")]
+        public async Task<IActionResult> UploadAttachment([FromForm] UploadMessageAttachmentDto dto)
+        {
+            return Response(await _service.UploadAttachmentAsync(dto));
         }
     }
 }
