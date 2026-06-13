@@ -130,7 +130,7 @@ namespace ArabFootball.Api.Features.Chats
                     c.ChatType == ChatType.Match);
 
             if (chat == null)
-                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.NotFound,"محادثة المباراة غير موجودة");
+                return ApiResponse<ChatResponseDto>.Error(HttpStatusCode.NotFound, "هذه المباراة غير مرتبطة بمحادثة ");
 
             var response = new ChatResponseDto
             {
