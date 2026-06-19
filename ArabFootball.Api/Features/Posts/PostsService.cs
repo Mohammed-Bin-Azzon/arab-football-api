@@ -107,7 +107,7 @@ namespace ArabFootball.Api.Features.Posts.Services
             }
         }
 
-        public async Task<ApiResponse<PostDto>> GetPostByIdAsync(int postId, int viewerFanId)
+        public async Task<ApiResponse<PostDto>> GetPostByIdAsync(int postId, int? viewerFanId)
         {
             var post = await _context.Posts
                 .AsNoTracking()
@@ -122,8 +122,8 @@ namespace ArabFootball.Api.Features.Posts.Services
                     LikeCount = p.LikeCount,
                     CommentCount = p.CommentCount,
                     BookmarkCount = p.BookmarkCount,
-                    IsLiked = p.Likes.Any(l => l.FanId == viewerFanId),
-                    IsBookmarked = p.Bookmarks.Any(b => b.FanId == viewerFanId),
+                    IsLiked = viewerFanId.HasValue && p.Likes.Any(l => l.FanId == viewerFanId.Value),
+                    IsBookmarked = viewerFanId.HasValue && p.Bookmarks.Any(b => b.FanId == viewerFanId.Value),
                     FanId = p.FanId,
                     FanDisplayName = p.Fan.DisplayName,
                     FanProfilePicUrl = p.Fan.ProfilePicUrl
@@ -140,7 +140,7 @@ namespace ArabFootball.Api.Features.Posts.Services
             return ApiResponse<PostDto>.Success(post, "تم جلب تفاصيل المنشور بنجاح.");
         }
 
-        public async Task<ApiResponse<List<PostDto>>> GetHomeFeedAsync()
+        public async Task<ApiResponse<List<PostDto>>> GetHomeFeedAsync(int? viewerFanId = null)
         {
             var posts = await _context.Posts
                 .AsNoTracking()
@@ -155,6 +155,8 @@ namespace ArabFootball.Api.Features.Posts.Services
                     LikeCount = p.LikeCount,
                     CommentCount = p.CommentCount,
                     BookmarkCount = p.BookmarkCount,
+                    IsLiked = viewerFanId.HasValue && p.Likes.Any(l => l.FanId == viewerFanId.Value),
+                    IsBookmarked = viewerFanId.HasValue && p.Bookmarks.Any(b => b.FanId == viewerFanId.Value),
                     FanId = p.FanId,
                     FanDisplayName = p.Fan.DisplayName,
                     FanProfilePicUrl = p.Fan.ProfilePicUrl
@@ -287,6 +289,4 @@ namespace ArabFootball.Api.Features.Posts.Services
             }
         }
     }
-
-
 }
