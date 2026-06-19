@@ -22,14 +22,16 @@ namespace ArabFootball.Api.Controllers
             _service = service;
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
         {
             return Response(await _service.GetAllMatchesAsync(pageNumber, pageSize, search));
         }
 
+        [AllowAnonymous]
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById([FromRoute]int id)
+        public async Task<IActionResult> GetById([FromRoute] int id)
         {
             return Response(await _service.GetMatchByIdAsync(id));
         }
@@ -51,9 +53,9 @@ namespace ArabFootball.Api.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-                
+
             return Response(await _service.UpdateMatchAsync(id, dto));
-            
+
         }
 
         [Authorize(Roles = "Admin")]
