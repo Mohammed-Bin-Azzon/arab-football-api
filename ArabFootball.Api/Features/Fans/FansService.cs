@@ -382,5 +382,38 @@ namespace ArabFootball.Api.Features.Fans
 
             return ApiResponse<bool>.Success(isFollowing, "تم التحقق من حالة المتابعة بنجاح.");
         }
+
+        public async Task<ApiResponse<List<FanAdminDto>>> GetFansForAdminAsync(string? search = null)
+        {
+            var query = _context.Fans
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim();
+
+                query = query.Where(f =>
+                    EF.Functions.Like(f.Username, $"%{keyword}%") ||
+                    EF.Functions.Like(f.Email, $"%{keyword}%"));
+            }
+
+            var fans = await query
+                .OrderByDescending(f => f.Id)
+                .Select(f => new FanAdminDto
+                {
+                    Id = f.Id,
+                    Username = f.Username,
+                    Email = f.Email,
+                    FollowersCount = f.FollowersCount,
+                    FollowingCount = f.FollowingCount
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<FanAdminDto>>.Success(
+                fans,
+                fans.Any() ? "تم جلب المستخدمين بنجاح." : "لا توجد نتائج."
+            );
+        }
     }
 }

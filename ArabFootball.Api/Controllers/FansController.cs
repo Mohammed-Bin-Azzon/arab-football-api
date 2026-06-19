@@ -19,6 +19,13 @@ namespace ArabFootball.Api.Controllers
             _fansService = fansService;
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin")]
+        public async Task<IActionResult> GetFansForAdmin([FromQuery] string? search = null)
+        {
+            return Response(await _fansService.GetFansForAdminAsync(search));
+        }
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetProfile(int id)
         {

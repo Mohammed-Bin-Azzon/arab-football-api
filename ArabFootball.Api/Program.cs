@@ -3,12 +3,14 @@ using ArabFootball.Api.Features.Bookmarks;
 using ArabFootball.Api.Features.ChatMembers;
 using ArabFootball.Api.Features.Chats;
 using ArabFootball.Api.Features.Comments;
+using ArabFootball.Api.Features.Dashboard;
 using ArabFootball.Api.Features.Fans;
 using ArabFootball.Api.Features.Likes;
 using ArabFootball.Api.Features.Matchs;
 using ArabFootball.Api.Features.Messages;
 using ArabFootball.Api.Features.Posts.Services;
 using ArabFootball.Api.Features.Predictions;
+using ArabFootball.Api.Features.Reports;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Helpers;
 using ArabFootball.Api.Shared.Seeding;
@@ -70,6 +72,8 @@ builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IChatMemberService, ChatMemberService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>

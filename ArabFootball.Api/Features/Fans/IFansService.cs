@@ -15,5 +15,6 @@ namespace ArabFootball.Api.Features.Fans
         Task<ApiResponse<object>> FollowFanAsync(int followerId, int followedFanId);
         Task<ApiResponse<object>> UnfollowFanAsync(int followerId, int followedFanId);
         Task<ApiResponse<bool>> IsFollowingAsync(int followerId, int followedFanId);
+        Task<ApiResponse<List<FanAdminDto>>> GetFansForAdminAsync(string? search = null);
     }
 }

@@ -22,6 +22,7 @@ namespace ArabFootball.Api.Shared.Data
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
         public DbSet<Prediction> Predictions => Set<Prediction>();
+        public DbSet<Report> Reports => Set<Report>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -204,6 +205,39 @@ namespace ArabFootball.Api.Shared.Data
                     t.HasCheckConstraint("CK_Predictions_HomeScore_NonNegative", "[PredictedHomeScore] >= 0");
                     t.HasCheckConstraint("CK_Predictions_AwayScore_NonNegative", "[PredictedAwayScore] >= 0");
                 });
+            });
+
+            // =========================
+            // Reports
+            // =========================
+            modelBuilder.Entity<Report>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+
+                entity.Property(r => r.TargetType)
+                    .IsRequired();
+
+                entity.Property(r => r.TargetId)
+                    .IsRequired();
+
+                entity.Property(r => r.Reason)
+                    .IsRequired();
+
+                entity.Property(r => r.Status)
+                    .IsRequired();
+
+                entity.Property(r => r.CreatedAt)
+                    .IsRequired();
+
+                entity.HasOne(r => r.Reporter)
+                    .WithMany()
+                    .HasForeignKey(r => r.ReporterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(r => r.Admin)
+                    .WithMany()
+                    .HasForeignKey(r => r.AdminId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }
