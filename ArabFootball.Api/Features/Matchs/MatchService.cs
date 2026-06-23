@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using ArabFootball.Api.Features.Chats;
 using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Features.Matchs.MatchDto;
 using ArabFootball.Api.Shared.Data;
@@ -13,11 +14,13 @@ namespace ArabFootball.Api.Features.Matchs
     {
         private readonly AppDBContext _context;
         private readonly IFileService _fileService;
+        private readonly IChatService _chatService;
 
-        public MatchService(AppDBContext context, IFileService fileService)
+        public MatchService(AppDBContext context, IFileService fileService, IChatService chatService)
         {
             _context = context;
             _fileService = fileService;
+            _chatService = chatService;
         }
 
         public async Task<ApiResponse<PaginatedResult<MatchDetailsDto>>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
@@ -154,6 +157,16 @@ namespace ArabFootball.Api.Features.Matchs
             await _context.Matches.AddAsync(match);
             await _context.SaveChangesAsync();
 
+            var chatResponse = await _chatService.CreateMatchChatAsync(match.Id);
+
+            if (!chatResponse.IsSuccess)
+            {
+                return ApiResponse<MatchDetailsDto>.Error(
+                    chatResponse.StatusCode,
+                    chatResponse.Message
+                );
+            }
+
             var result = new MatchDetailsDto
             {
                 Id = match.Id,
@@ -267,6 +280,14 @@ namespace ArabFootball.Api.Features.Matchs
             if (!string.IsNullOrWhiteSpace(match.AwayTeamLogoUrl))
             {
                 _fileService.DeleteFile(match.AwayTeamLogoUrl);
+            }
+
+            var matchChat = await _context.Chats
+                    .FirstOrDefaultAsync(c => c.MatchId == matchId);
+
+            if (matchChat != null)
+            {
+                matchChat.MatchId = null;
             }
 
             _context.Matches.Remove(match);

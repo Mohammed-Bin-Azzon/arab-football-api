@@ -229,7 +229,7 @@ namespace ArabFootball.Api.Features.Messages
             if (chat.Match == null)
                 return ApiResponse<bool>.Error(
                     HttpStatusCode.BadRequest,
-                    "محادثة المباراة غير مرتبطة بمباراة"
+                    "بيانات المباراة المرتبطة بالمحادثة غير متوفرة"
                 );
 
             var now = SaudiTime.Now();

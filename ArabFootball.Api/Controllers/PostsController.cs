@@ -29,17 +29,20 @@ namespace ArabFootball.Api.Controllers
             return Response(await _postsService.CreatePostAsync(fanId, dto));
         }
 
+        [AllowAnonymous]
         [HttpGet("{postId:int}")]
         public async Task<IActionResult> GetById(int postId)
         {
-            var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var fanId = GetCurrentFanIdOrNull();
             return Response(await _postsService.GetPostByIdAsync(postId, fanId));
         }
 
+        [AllowAnonymous]
         [HttpGet("feed")]
         public async Task<IActionResult> GetFeed()
         {
-            return Response(await _postsService.GetHomeFeedAsync());
+            var fanId = GetCurrentFanIdOrNull();
+            return Response(await _postsService.GetHomeFeedAsync(fanId));
         }
 
         [HttpPatch("{postId:int}")]
@@ -57,6 +60,15 @@ namespace ArabFootball.Api.Controllers
         {
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _postsService.DeletePostAsync(postId, fanId));
+        }
+
+        private int? GetCurrentFanIdOrNull()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return null;
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(userId, out var fanId) ? fanId : null;
         }
     }
 }

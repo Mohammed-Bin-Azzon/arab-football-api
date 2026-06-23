@@ -29,6 +29,7 @@ namespace ArabFootball.Api.Controllers
             return Response(await _commentsService.AddCommentAsync(fanId, dto));
         }
 
+        [AllowAnonymous]
         [HttpGet("post/{postId:int}")]
         public async Task<IActionResult> GetPostComments(int postId)
         {
