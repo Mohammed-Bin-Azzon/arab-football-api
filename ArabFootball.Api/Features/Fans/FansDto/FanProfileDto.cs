@@ -15,8 +15,7 @@ namespace ArabFootball.Api.Features.Fans.Dtos
 
         public int FollowersCount { get; set; }
         public int FollowingCount { get; set; }
-
-        // public int Points { get; set; }
+        public int Points { get; set; }
 
         public List<PostDto> Posts { get; set; } = new();
     }

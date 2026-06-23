@@ -153,5 +153,100 @@ namespace ArabFootball.Api.Features.Predictions
                 predictions,
                 "تم جلب توقعاتك بنجاح.");
         }
+
+        public async Task<ApiResponse<ProcessPredictionsResultDto>> ProcessPredictionsAsync(ProcessPredictionsDto dto)
+        {
+            try
+            {
+                const int pointsPerCorrectPrediction = 10;
+
+                var match = await _context.Matches
+                    .FirstOrDefaultAsync(m => m.Id == dto.MatchId);
+
+                if (match == null)
+                {
+                    return ApiResponse<ProcessPredictionsResultDto>.Error(
+                        HttpStatusCode.NotFound,
+                        "المباراة غير موجودة.");
+                }
+
+                var actualHomeScore = dto.HomeScore ?? 3;
+                var actualAwayScore = dto.AwayScore ?? 2;
+
+                var predictions = await _context.Predictions
+                    .Where(p => p.MatchId == dto.MatchId && !p.IsProcessed)
+                    .ToListAsync();
+
+                if (!predictions.Any())
+                {
+                    return ApiResponse<ProcessPredictionsResultDto>.Success(
+                        new ProcessPredictionsResultDto
+                        {
+                            MatchId = dto.MatchId,
+                            ActualHomeScore = actualHomeScore,
+                            ActualAwayScore = actualAwayScore,
+                            TotalPredictions = 0,
+                            CorrectPredictions = 0,
+                            ProcessedPredictions = 0,
+                            PointsPerCorrectPrediction = pointsPerCorrectPrediction
+                        },
+                        "لا توجد توقعات غير معالجة لهذه المباراة.");
+                }
+
+                var fanIds = predictions
+                    .Select(p => p.FanId)
+                    .Distinct()
+                    .ToList();
+
+                var fans = await _context.Fans
+                    .Where(f => fanIds.Contains(f.Id))
+                    .ToDictionaryAsync(f => f.Id);
+
+                var correctPredictions = 0;
+
+                foreach (var prediction in predictions)
+                {
+                    var isCorrect =
+                        prediction.PredictedHomeScore == actualHomeScore &&
+                        prediction.PredictedAwayScore == actualAwayScore;
+
+                    prediction.IsProcessed = true;
+                    prediction.PointsEarned = isCorrect ? pointsPerCorrectPrediction : 0;
+
+                    if (isCorrect)
+                    {
+                        correctPredictions++;
+
+                        if (fans.TryGetValue(prediction.FanId, out var fan))
+                        {
+                            fan.Points += pointsPerCorrectPrediction;
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                var result = new ProcessPredictionsResultDto
+                {
+                    MatchId = dto.MatchId,
+                    ActualHomeScore = actualHomeScore,
+                    ActualAwayScore = actualAwayScore,
+                    TotalPredictions = predictions.Count,
+                    CorrectPredictions = correctPredictions,
+                    ProcessedPredictions = predictions.Count,
+                    PointsPerCorrectPrediction = pointsPerCorrectPrediction
+                };
+
+                return ApiResponse<ProcessPredictionsResultDto>.Success(
+                    result,
+                    "تمت معالجة توقعات المباراة بنجاح.");
+            }
+            catch (Exception)
+            {
+                return ApiResponse<ProcessPredictionsResultDto>.Error(
+                    HttpStatusCode.InternalServerError,
+                    "حدث خطأ أثناء معالجة التوقعات.");
+            }
+        }
     }
 }

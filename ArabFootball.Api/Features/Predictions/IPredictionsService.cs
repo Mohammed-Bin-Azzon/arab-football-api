@@ -7,5 +7,6 @@ namespace ArabFootball.Api.Features.Predictions
     {
         Task<ApiResponse<PredictionDto>> SubmitPredictionAsync(int fanId, SubmitPredictionDto dto);
         Task<ApiResponse<List<PredictionDto>>> GetMyPredictionsAsync(int fanId);
+        Task<ApiResponse<ProcessPredictionsResultDto>> ProcessPredictionsAsync(ProcessPredictionsDto dto);
     }
 }

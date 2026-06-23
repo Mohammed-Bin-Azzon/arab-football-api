@@ -36,7 +36,7 @@ namespace ArabFootball.Api.Features.Fans
                     FollowingCount = f.FollowingCount,
                     FavoriteTeamCode = f.FavoriteTeamCode,
                     FavoritePlayerCode = f.FavoritePlayerCode,
-                    //Points = f.Points,
+                    Points = f.Points,
                     Posts = f.Posts
                         .OrderByDescending(p => p.CreatedAt)
                         .Select(p => new PostDto
@@ -174,7 +174,7 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = f.ProfilePicUrl,
                     FollowersCount = f.FollowersCount,
                     FollowingCount = f.FollowingCount,
-                    //Points = f.Points
+                    Points = f.Points
                 })
                 .ToListAsync();
 
@@ -207,7 +207,7 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = f.Follower.ProfilePicUrl,
                     FollowersCount = f.Follower.FollowersCount,
                     FollowingCount = f.Follower.FollowingCount,
-                    //Points = f.Follower.Points
+                    Points = f.Follower.Points
                 })
                 .ToListAsync();
 
@@ -242,7 +242,7 @@ namespace ArabFootball.Api.Features.Fans
                     ProfilePicUrl = f.FollowedFan.ProfilePicUrl,
                     FollowersCount = f.FollowedFan.FollowersCount,
                     FollowingCount = f.FollowedFan.FollowingCount,
-                    //Points = f.FollowedFan.Points
+                    Points = f.FollowedFan.Points
                 })
                 .ToListAsync();
 

@@ -2,6 +2,8 @@
 using ArabFootball.Api.Features.Chats;
 using ArabFootball.Api.Features.Enums;
 using ArabFootball.Api.Features.Matchs.MatchDto;
+using ArabFootball.Api.Features.Predictions;
+using ArabFootball.Api.Features.Predictions.PredictionsDto;
 using ArabFootball.Api.Shared.Data;
 using ArabFootball.Api.Shared.Entity;
 using ArabFootball.Api.Shared.Helpers;
@@ -15,12 +17,14 @@ namespace ArabFootball.Api.Features.Matchs
         private readonly AppDBContext _context;
         private readonly IFileService _fileService;
         private readonly IChatService _chatService;
+        private readonly IPredictionsService _predictionsService;
 
-        public MatchService(AppDBContext context, IFileService fileService, IChatService chatService)
+        public MatchService(AppDBContext context, IFileService fileService, IChatService chatService, IPredictionsService predictionsService)
         {
             _context = context;
             _fileService = fileService;
             _chatService = chatService;
+            _predictionsService = predictionsService;
         }
 
         public async Task<ApiResponse<PaginatedResult<MatchDetailsDto>>> GetAllMatchesAsync(int pageNumber = 1, int pageSize = 10, string? search = null)
@@ -344,20 +348,45 @@ namespace ArabFootball.Api.Features.Matchs
         public async Task<ApiResponse<bool>> ClosePredictionsAsync(int matchId)
         {
             var match = await _context.Matches.FirstOrDefaultAsync(m => m.Id == matchId);
+
             if (match == null)
             {
-                return ApiResponse<bool>.Error(HttpStatusCode.NotFound, "المباراة غير موجودة.");
+                return ApiResponse<bool>.Error(
+                    HttpStatusCode.NotFound,
+                    "المباراة غير موجودة."
+                );
             }
 
             if (match.PredictionState == PredictionState.Closed)
             {
-                return ApiResponse<bool>.Error(HttpStatusCode.BadRequest, "التوقع للمباراة مغلق بالفعل");
+                return ApiResponse<bool>.Error(
+                    HttpStatusCode.BadRequest,
+                    "التوقع للمباراة مغلق بالفعل"
+                );
             }
 
             match.PredictionState = PredictionState.Closed;
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.Success(true, "تم إغلاق التوقعات بنجاح.");
+            var processResult = await _predictionsService.ProcessPredictionsAsync(
+                new ProcessPredictionsDto
+                {
+                    MatchId = matchId
+                }
+            );
+
+            if (processResult.StatusCode != HttpStatusCode.OK)
+            {
+                return ApiResponse<bool>.Success(
+                    true,
+                    $"تم إغلاق التوقعات بنجاح، لكن لم تتم معالجة التوقعات: {processResult.Message}"
+                );
+            }
+
+            return ApiResponse<bool>.Success(
+                true,
+                "تم إغلاق التوقعات ومعالجة نتائج التوقعات بنجاح."
+            );
         }
 
         public async Task<ApiResponse<bool>> LinkChatAsync(int matchId, string chatUrl)

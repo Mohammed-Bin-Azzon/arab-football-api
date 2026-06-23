@@ -35,5 +35,14 @@ namespace ArabFootball.Api.Controllers
             var fanId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
             return Response(await _predictionsService.GetMyPredictionsAsync(fanId));
         }
+
+        [HttpPost("process")]
+        public async Task<IActionResult> ProcessPredictions([FromBody] ProcessPredictionsDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            return Response(await _predictionsService.ProcessPredictionsAsync(dto));
+        }
     }
 }
