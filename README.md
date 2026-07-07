@@ -24,3 +24,7 @@ This API powers a football-focused social platform where users can share posts, 
 - Entity Framework Core
 - SQL Server
 - RESTful APIs
+
+  ## Related Project
+
+🔗 [Arab Football Fans Platform](https://github.com/Mohammed-Bin-Azzon/Arab-Football-Fans-Platform)
